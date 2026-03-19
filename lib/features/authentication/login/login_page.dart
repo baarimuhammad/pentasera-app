@@ -3,7 +3,8 @@ import 'dart:ui';
 import 'package:pentasera_app/features/authentication/lupa_password/forget_password.dart';
 import 'package:pentasera_app/features/authentication/register/register_page.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import '../../public_pages/home/home_page.dart'; // Uncomment ini nanti untuk navigasi "Guest"
+import 'package:pentasera_app/services/auth_service.dart';
+import 'package:pentasera_app/features/public_pages/home/home.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,6 +15,16 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,15 +98,14 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                        'PENTASARA',
-                        // 👇 Ubah bagian style menjadi seperti ini
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                          color: textColor, // Sesuaikan warna dengan variabel yang ada
+                          'PENTASARA',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                            color: textColor,
+                          ),
                         ),
-                      ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -114,6 +124,7 @@ class _LoginPageState extends State<LoginPage> {
                       surfaceColor: surfaceColor,
                       textColor: textColor,
                       primaryColor: primaryColor,
+                      controller: _emailController, // ← terhubung ke controller
                     ),
                     const SizedBox(height: 16),
 
@@ -147,6 +158,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 8),
                         TextField(
+                          controller: _passwordController, // ← terhubung ke controller
                           obscureText: _obscurePassword,
                           style: TextStyle(color: textColor),
                           decoration: InputDecoration(
@@ -195,7 +207,49 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: _isLoading
+                            ? null
+                            : () async {
+                                // Validasi field kosong
+                                if (_emailController.text.isEmpty ||
+                                    _passwordController.text.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Email dan kata sandi tidak boleh kosong'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                setState(() => _isLoading = true);
+
+                                final result = await AuthService.login(
+                                  _emailController.text.trim(),
+                                  _passwordController.text,
+                                );
+
+                                setState(() => _isLoading = false);
+
+                                if (result['success']) {
+                                  // Login berhasil → navigasi ke HomePage
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const HomePage()),
+                                    (route) => false,
+                                  );
+                                } else {
+                                  // Login gagal → tampilkan pesan error
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result['message']),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
                           foregroundColor: Colors.white,
@@ -204,9 +258,18 @@ class _LoginPageState extends State<LoginPage> {
                               borderRadius: BorderRadius.circular(12)),
                           elevation: 2,
                         ),
-                        child: const Text('Masuk',
-                            style: TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.bold)),
+                        // Tampilkan loading spinner saat proses login
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Text('Masuk',
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -282,7 +345,11 @@ class _LoginPageState extends State<LoginPage> {
                     // Guest Login
                     TextButton.icon(
                       onPressed: () {
-                        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const HomePage()),
+                          (route) => false,
+                        );
                       },
                       icon: Text('Masuk sebagai Tamu',
                           style: TextStyle(color: mutedColor, fontSize: 12)),
@@ -299,14 +366,16 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTextField(
-      {required String label,
-      required String hint,
-      required IconData icon,
-      required bool isDark,
-      required Color surfaceColor,
-      required Color textColor,
-      required Color primaryColor}) {
+  Widget _buildTextField({
+    required String label,
+    required String hint,
+    required IconData icon,
+    required bool isDark,
+    required Color surfaceColor,
+    required Color textColor,
+    required Color primaryColor,
+    TextEditingController? controller, // ← parameter baru
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -315,6 +384,7 @@ class _LoginPageState extends State<LoginPage> {
                 fontSize: 14, fontWeight: FontWeight.w500, color: textColor)),
         const SizedBox(height: 8),
         TextField(
+          controller: controller, // ← dihubungkan
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
             hintText: hint,

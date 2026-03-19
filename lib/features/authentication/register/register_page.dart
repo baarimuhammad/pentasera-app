@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:pentasera_app/services/auth_service.dart';
+// ⚠️ Sesuaikan path di bawah ini dengan lokasi file home_page.dart kamu
+import 'package:pentasera_app/features/public_pages/home/home.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -11,6 +14,84 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreedToTerms = false;
+  bool _isLoading = false;
+
+  // ← Controller untuk setiap field
+  final TextEditingController _namaController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  // ← Fungsi validasi sebelum kirim ke API
+  String? _validate() {
+    if (_namaController.text.trim().isEmpty) {
+      return 'Nama lengkap tidak boleh kosong';
+    }
+    if (_emailController.text.trim().isEmpty) {
+      return 'Email tidak boleh kosong';
+    }
+    if (!_emailController.text.contains('@')) {
+      return 'Format email tidak valid';
+    }
+    if (_passwordController.text.isEmpty) {
+      return 'Kata sandi tidak boleh kosong';
+    }
+    if (_passwordController.text.length < 6) {
+      return 'Kata sandi minimal 6 karakter';
+    }
+    if (_confirmPasswordController.text != _passwordController.text) {
+      return 'Konfirmasi kata sandi tidak cocok';
+    }
+    if (!_agreedToTerms) {
+      return 'Kamu harus menyetujui syarat & ketentuan';
+    }
+    return null; // null = tidak ada error
+  }
+
+  // ← Fungsi utama untuk daftar
+  Future<void> _handleRegister() async {
+    final error = _validate();
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final result = await AuthService.register(
+      nama: _namaController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      passwordConfirmation: _confirmPasswordController.text,
+      role: 'buyer', // default role saat daftar adalah buyer
+    );
+
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      // Registrasi berhasil → langsung masuk ke HomePage
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,18 +119,29 @@ class _RegisterPageState extends State<RegisterPage> {
                     Container(
                       width: 32,
                       height: 32,
-                      decoration: BoxDecoration(color: primaryColor, shape: BoxShape.circle),
-                      child: const Icon(Icons.theater_comedy, color: Colors.white, size: 20),
+                      decoration: BoxDecoration(
+                          color: primaryColor, shape: BoxShape.circle),
+                      child: const Icon(Icons.theater_comedy,
+                          color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'PENTASARA',
-                      style: TextStyle(fontFamily: 'Playfair Display', fontSize: 24, fontWeight: FontWeight.bold, color: primaryColor, letterSpacing: 1.5),
+                      'PENTASERA',
+                      style: TextStyle(
+                          fontFamily: 'Playfair Display',
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor,
+                          letterSpacing: 1.5),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text('Bergabung dan rasakan keajaiban budaya nusantara', style: TextStyle(color: mutedColor, fontSize: 14), textAlign: TextAlign.center),
+                Text(
+                  'Bergabung dan rasakan keajaiban budaya nusantara',
+                  style: TextStyle(color: mutedColor, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 32),
 
                 // Form Card
@@ -59,25 +151,89 @@ class _RegisterPageState extends State<RegisterPage> {
                     color: surfaceColor,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: borderColor),
-                    boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                    boxShadow: isDark
+                        ? []
+                        : [
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4))
+                          ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(child: Text('Buat Akun Baru', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: textColor))),
+                      Center(
+                        child: Text('Buat Akun Baru',
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: textColor)),
+                      ),
                       const SizedBox(height: 24),
-                      
-                      _buildInput(label: 'Nama Lengkap', hint: 'Masukkan nama lengkap', icon: Icons.person_outline, isDark: isDark, textColor: textColor, primaryColor: primaryColor, bgColor: bgColor, borderColor: borderColor),
-                      const SizedBox(height: 16),
-                      _buildInput(label: 'Email', hint: 'nama@email.com', icon: Icons.mail_outline, isDark: isDark, textColor: textColor, primaryColor: primaryColor, bgColor: bgColor, borderColor: borderColor),
-                      const SizedBox(height: 16),
-                      
-                      _buildPasswordInput(label: 'Kata Sandi', hint: 'Minimal 8 karakter', isObscure: _obscurePassword, onToggle: () => setState(() => _obscurePassword = !_obscurePassword), isDark: isDark, textColor: textColor, primaryColor: primaryColor, bgColor: bgColor, borderColor: borderColor),
-                      const SizedBox(height: 16),
-                      _buildPasswordInput(label: 'Konfirmasi Kata Sandi', hint: 'Ulangi kata sandi', isObscure: _obscureConfirmPassword, onToggle: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword), isDark: isDark, textColor: textColor, primaryColor: primaryColor, bgColor: bgColor, borderColor: borderColor),
+
+                      // Nama Lengkap
+                      _buildInput(
+                        label: 'Nama Lengkap',
+                        hint: 'Masukkan nama lengkap',
+                        icon: Icons.person_outline,
+                        controller: _namaController, // ← terhubung
+                        isDark: isDark,
+                        textColor: textColor,
+                        primaryColor: primaryColor,
+                        bgColor: bgColor,
+                        borderColor: borderColor,
+                      ),
                       const SizedBox(height: 16),
 
-                      // Terms
+                      // Email
+                      _buildInput(
+                        label: 'Email',
+                        hint: 'nama@email.com',
+                        icon: Icons.mail_outline,
+                        controller: _emailController, // ← terhubung
+                        keyboardType: TextInputType.emailAddress,
+                        isDark: isDark,
+                        textColor: textColor,
+                        primaryColor: primaryColor,
+                        bgColor: bgColor,
+                        borderColor: borderColor,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Kata Sandi
+                      _buildPasswordInput(
+                        label: 'Kata Sandi',
+                        hint: 'Minimal 6 karakter',
+                        controller: _passwordController, // ← terhubung
+                        isObscure: _obscurePassword,
+                        onToggle: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
+                        isDark: isDark,
+                        textColor: textColor,
+                        primaryColor: primaryColor,
+                        bgColor: bgColor,
+                        borderColor: borderColor,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Konfirmasi Kata Sandi
+                      _buildPasswordInput(
+                        label: 'Konfirmasi Kata Sandi',
+                        hint: 'Ulangi kata sandi',
+                        controller: _confirmPasswordController, // ← terhubung
+                        isObscure: _obscureConfirmPassword,
+                        onToggle: () => setState(() =>
+                            _obscureConfirmPassword = !_obscureConfirmPassword),
+                        isDark: isDark,
+                        textColor: textColor,
+                        primaryColor: primaryColor,
+                        bgColor: bgColor,
+                        borderColor: borderColor,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Terms & Conditions
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -86,7 +242,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             width: 24,
                             child: Checkbox(
                               value: _agreedToTerms,
-                              onChanged: (val) => setState(() => _agreedToTerms = val!),
+                              onChanged: (val) =>
+                                  setState(() => _agreedToTerms = val!),
                               activeColor: primaryColor,
                               side: BorderSide(color: borderColor),
                             ),
@@ -95,12 +252,23 @@ class _RegisterPageState extends State<RegisterPage> {
                           Expanded(
                             child: RichText(
                               text: TextSpan(
-                                style: TextStyle(color: mutedColor, fontSize: 12, fontFamily: 'Plus Jakarta Sans'),
+                                style: TextStyle(
+                                    color: mutedColor,
+                                    fontSize: 12,
+                                    fontFamily: 'Plus Jakarta Sans'),
                                 children: [
                                   const TextSpan(text: 'Saya menyetujui '),
-                                  TextSpan(text: 'Syarat & Ketentuan', style: TextStyle(color: primaryColor, fontWeight: FontWeight.w500)),
+                                  TextSpan(
+                                      text: 'Syarat & Ketentuan',
+                                      style: TextStyle(
+                                          color: primaryColor,
+                                          fontWeight: FontWeight.w500)),
                                   const TextSpan(text: ' serta '),
-                                  TextSpan(text: 'Kebijakan Privasi', style: TextStyle(color: primaryColor, fontWeight: FontWeight.w500)),
+                                  TextSpan(
+                                      text: 'Kebijakan Privasi',
+                                      style: TextStyle(
+                                          color: primaryColor,
+                                          fontWeight: FontWeight.w500)),
                                   const TextSpan(text: ' yang berlaku.'),
                                 ],
                               ),
@@ -110,18 +278,29 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Submit Button
+                      // Tombol Daftar
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: _isLoading ? null : _handleRegister,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text('Daftar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Text('Daftar',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
@@ -129,14 +308,19 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 32),
 
-                // Back to Login Link
+                // Kembali ke Login
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Sudah punya akun? ', style: TextStyle(color: mutedColor, fontSize: 14)),
+                    Text('Sudah punya akun? ',
+                        style: TextStyle(color: mutedColor, fontSize: 14)),
                     GestureDetector(
-                      onTap: () => Navigator.pop(context), // Kembali ke halaman Login
-                      child: Text('Masuk disini', style: TextStyle(color: primaryColor, fontSize: 14, fontWeight: FontWeight.bold)),
+                      onTap: () => Navigator.pop(context),
+                      child: Text('Masuk disini',
+                          style: TextStyle(
+                              color: primaryColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -148,13 +332,30 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildInput({required String label, required String hint, required IconData icon, required bool isDark, required Color textColor, required Color primaryColor, required Color bgColor, required Color borderColor}) {
+  Widget _buildInput({
+    required String label,
+    required String hint,
+    required IconData icon,
+    required TextEditingController controller, // ← wajib ada
+    required bool isDark,
+    required Color textColor,
+    required Color primaryColor,
+    required Color bgColor,
+    required Color borderColor,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: textColor)),
         const SizedBox(height: 8),
         TextField(
+          controller: controller, // ← dihubungkan
+          keyboardType: keyboardType,
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
             hintText: hint,
@@ -163,38 +364,72 @@ class _RegisterPageState extends State<RegisterPage> {
             filled: true,
             fillColor: bgColor,
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryColor, width: 2)),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: borderColor)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: borderColor)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: primaryColor, width: 2)),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPasswordInput({required String label, required String hint, required bool isObscure, required VoidCallback onToggle, required bool isDark, required Color textColor, required Color primaryColor, required Color bgColor, required Color borderColor}) {
+  Widget _buildPasswordInput({
+    required String label,
+    required String hint,
+    required TextEditingController controller, // ← wajib ada
+    required bool isObscure,
+    required VoidCallback onToggle,
+    required bool isDark,
+    required Color textColor,
+    required Color primaryColor,
+    required Color bgColor,
+    required Color borderColor,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: textColor)),
         const SizedBox(height: 8),
         TextField(
+          controller: controller, // ← dihubungkan
           obscureText: isObscure,
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-            prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey, size: 20),
+            prefixIcon:
+                const Icon(Icons.lock_outline, color: Colors.grey, size: 20),
             suffixIcon: IconButton(
-              icon: Icon(isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey, size: 20),
+              icon: Icon(
+                  isObscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: Colors.grey,
+                  size: 20),
               onPressed: onToggle,
             ),
             filled: true,
             fillColor: bgColor,
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryColor, width: 2)),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: borderColor)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: borderColor)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: primaryColor, width: 2)),
           ),
         ),
       ],
