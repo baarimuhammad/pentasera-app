@@ -1,59 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:pentasera_app/main.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class AppColors {
-  static const Color primary = Color(0xFFf27f0d);
-  static const Color backgroundLight = Color(0xFFf8f7f5);
-  static const Color backgroundDark = Color(0xFF221910);
-  static const Color slate900 = Color(0xFF0f172a);
-  static const Color slate100 = Color(0xFFf1f5f9);
-  static const Color slate400 = Color(0xFF94a3b8);
-  static const Color slate600 = Color(0xFF475569);
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pentasera',
-      debugShowCheckedModeBanner: false,
-      themeMode:
-          ThemeMode.system, // Switches automatically based on device settings
-      theme: ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: AppColors.backgroundLight,
-        primaryColor: AppColors.primary,
-        fontFamily:
-            'Plus Jakarta Sans', // Make sure to add this to pubspec.yaml
-        colorScheme: const ColorScheme.light(
-          primary: AppColors.primary,
-          surface: Colors.white,
-          onSurface: AppColors.slate900,
-        ),
-      ),
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.backgroundDark,
-        primaryColor: AppColors.primary,
-        fontFamily: 'Plus Jakarta Sans',
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.primary,
-          surface: Color(
-              0xFF2D2318), // Slightly lighter than backgroundDark for cards
-          onSurface: AppColors.slate100,
-        ),
-      ),
-      home: const HomePage(),
-    );
-  }
-}
+import 'package:pentasera_app/features/public_pages/detail_event/detail_event_page.dart';
+import 'package:pentasera_app/features/public_pages/tentang_kami/tentang_kami_page.dart';
+import 'package:pentasera_app/features/public_pages/kontak/kontak_page.dart';
+import 'package:pentasera_app/features/public_pages/legal/legal_page.dart';
+import 'package:pentasera_app/services/event_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -63,8 +15,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _currentIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -88,7 +38,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
@@ -658,37 +607,4 @@ PreferredSizeWidget _buildAppBar(Color textColor) {
       ),
     );
   }
-
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        border:
-            Border(top: BorderSide(color: AppColors.primary.withOpacity(0.1))),
-      ),
-      child: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.slate900
-            : AppColors.slate400,
-        selectedLabelStyle:
-            const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-        unselectedLabelStyle:
-            const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-        elevation: 0,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Eksplor'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.confirmation_number), label: 'Tiket'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
-        ],
-      ),
-    );
-  }
 }
-
-// Need this extra import at the top of the file for the BackdropFilter blur effect in the AppBar

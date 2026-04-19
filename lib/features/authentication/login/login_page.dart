@@ -4,7 +4,8 @@ import 'package:pentasera_app/features/authentication/lupa_password/forget_passw
 import 'package:pentasera_app/features/authentication/register/register_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pentasera_app/services/auth_service.dart';
-import 'package:pentasera_app/features/public_pages/home/home.dart';
+import 'package:pentasera_app/core/app_router.dart';
+import 'package:pentasera_app/main.dart' as app;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -75,290 +76,338 @@ class _LoginPageState extends State<LoginPage> {
 
           // Main Content
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0, vertical: 32.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Logo & Title
-                    Row(
+            child: Stack(
+              children: [
+                // Theme Toggle Button
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: IconButton(
+                    onPressed: () {
+                      // Toggle between light and dark theme
+                      final currentTheme = app.themeNotifier.value;
+                      if (currentTheme == ThemeMode.light) {
+                        app.themeNotifier.value = ThemeMode.dark;
+                      } else {
+                        app.themeNotifier.value = ThemeMode.light;
+                      }
+                    },
+                    icon: Icon(
+                      isDark ? Icons.light_mode : Icons.dark_mode,
+                      color: primaryColor,
+                      size: 24,
+                    ),
+                  ),
+                ),
+                // Center Content
+                Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0, vertical: 32.0),
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: primaryColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.theater_comedy,
-                              color: Colors.white, size: 20),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'PENTASARA',
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                            color: textColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Masuk untuk menjelajahi budaya nusantara',
-                      style: TextStyle(color: mutedColor, fontSize: 14),
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Email Field
-                    _buildTextField(
-                      label: 'Email',
-                      hint: 'namapengguna@email.com',
-                      icon: Icons.mail_outline,
-                      isDark: isDark,
-                      surfaceColor: surfaceColor,
-                      textColor: textColor,
-                      primaryColor: primaryColor,
-                      controller: _emailController, // ← terhubung ke controller
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Password Field
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                        // Logo & Title
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Kata Sandi',
+                            Image.asset(
+                              'assets/images/logo_pentasera.png',
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.contain,
+                            ),
+                            const SizedBox(width: 16),
+                            Text(
+                              'PENTASERA',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: GoogleFonts.montserrat().fontFamily,
+                                letterSpacing: 1.5,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Masuk untuk menjelajahi budaya nusantara',
+                          style: TextStyle(
+                            color: mutedColor,
+                            fontSize: 14,
+                            fontFamily: GoogleFonts.poppins().fontFamily,
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+
+                        // Email Field
+                        _buildTextField(
+                          label: 'Email',
+                          hint: 'namaemail@email.com',
+                          icon: Icons.mail_outline,
+                          isDark: isDark,
+                          surfaceColor: surfaceColor,
+                          textColor: textColor,
+                          primaryColor: primaryColor,
+                          controller:
+                              _emailController, // ← terhubung ke controller
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Password Field
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Kata Sandi',
+                                    style: TextStyle(
+                                        fontFamily:
+                                            GoogleFonts.poppins().fontFamily,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: textColor)),
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const ForgotPasswordPage()));
+                                  },
+                                  child: Text('Lupa Kata Sandi?',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontFamily:
+                                              GoogleFonts.poppins().fontFamily,
+                                          fontWeight: FontWeight.w600,
+                                          color: primaryColor)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller:
+                                  _passwordController, // ← terhubung ke controller
+                              obscureText: _obscurePassword,
+                              style: TextStyle(color: textColor),
+                              decoration: InputDecoration(
+                                hintText: '••••••••',
+                                hintStyle: TextStyle(color: Colors.grey[400]),
+                                prefixIcon: Icon(Icons.lock_outline,
+                                    color: Colors.grey[400], size: 20),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: Colors.grey[400],
+                                    size: 20,
+                                  ),
+                                  onPressed: () => setState(() =>
+                                      _obscurePassword = !_obscurePassword),
+                                ),
+                                filled: true,
+                                fillColor: surfaceColor,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                        color: isDark
+                                            ? Colors.grey[800]!
+                                            : Colors.grey[200]!)),
+                                enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                        color: isDark
+                                            ? Colors.grey[800]!
+                                            : Colors.grey[200]!)),
+                                focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                        color: primaryColor, width: 2)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Login Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    // Validasi field kosong
+                                    if (_emailController.text.isEmpty ||
+                                        _passwordController.text.isEmpty) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Email dan kata sandi tidak boleh kosong'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    setState(() => _isLoading = true);
+
+                                    final result = await AuthService.login(
+                                      _emailController.text.trim(),
+                                      _passwordController.text,
+                                    );
+
+                                    setState(() => _isLoading = false);
+
+                                    if (result['success']) {
+                                      // Login berhasil → navigasi berdasarkan role
+                                      final role = result['data']?['user']?['role'] ?? 'buyer';
+                                      Navigator.pushAndRemoveUntil(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) => RoleBasedShell(role: role)),
+                                        (route) => false,
+                                      );
+                                    } else {
+                                      // Login gagal → tampilkan pesan error
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(result['message']),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              elevation: 2,
+                            ),
+                            // Tampilkan loading spinner saat proses login
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                        color: Colors.white, strokeWidth: 2),
+                                  )
+                                : const Text('Masuk',
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Divider
+                        Row(
+                          children: [
+                            Expanded(
+                                child: Divider(
+                                    color: isDark
+                                        ? Colors.grey[800]
+                                        : Colors.grey[200])),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('Atau masuk dengan',
+                                  style: TextStyle(
+                                      color: mutedColor, fontSize: 12)),
+                            ),
+                            Expanded(
+                                child: Divider(
+                                    color: isDark
+                                        ? Colors.grey[800]
+                                        : Colors.grey[200])),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Social Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                                child: _buildSocialButton(
+                                    'Google',
+                                    'assets/images/google_logo.png',
+                                    surfaceColor,
+                                    textColor,
+                                    isDark)),
+                            const SizedBox(width: 16),
+                            Expanded(
+                                child: _buildSocialButton(
+                                    'Facebook',
+                                    'assets/images/facebook_logo.png',
+                                    surfaceColor,
+                                    textColor,
+                                    isDark)),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Register Link
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Belum punya akun? ',
                                 style: TextStyle(
+                                    color: mutedColor,
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: textColor)),
+                                    fontFamily:
+                                        GoogleFonts.poppins().fontFamily)),
                             GestureDetector(
                               onTap: () {
                                 Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (_) =>
-                                            const ForgotPasswordPage()));
+                                        builder: (_) => const RegisterPage()));
                               },
-                              child: Text('Lupa Kata Sandi?',
+                              child: Text('Daftar Sekarang',
                                   style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: primaryColor)),
+                                      color: primaryColor,
+                                      fontSize: 14,
+                                      fontFamily:
+                                          GoogleFonts.poppins().fontFamily,
+                                      fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _passwordController, // ← terhubung ke controller
-                          obscureText: _obscurePassword,
-                          style: TextStyle(color: textColor),
-                          decoration: InputDecoration(
-                            hintText: '••••••••',
-                            hintStyle: TextStyle(color: Colors.grey[400]),
-                            prefixIcon: Icon(Icons.lock_outline,
-                                color: Colors.grey[400], size: 20),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                color: Colors.grey[400],
-                                size: 20,
-                              ),
-                              onPressed: () => setState(
-                                  () => _obscurePassword = !_obscurePassword),
-                            ),
-                            filled: true,
-                            fillColor: surfaceColor,
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 16),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                    color: isDark
-                                        ? Colors.grey[800]!
-                                        : Colors.grey[200]!)),
-                            enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                    color: isDark
-                                        ? Colors.grey[800]!
-                                        : Colors.grey[200]!)),
-                            focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide:
-                                    BorderSide(color: primaryColor, width: 2)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                    // Login Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () async {
-                                // Validasi field kosong
-                                if (_emailController.text.isEmpty ||
-                                    _passwordController.text.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Email dan kata sandi tidak boleh kosong'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                  return;
-                                }
-
-                                setState(() => _isLoading = true);
-
-                                final result = await AuthService.login(
-                                  _emailController.text.trim(),
-                                  _passwordController.text,
-                                );
-
-                                setState(() => _isLoading = false);
-
-                                if (result['success']) {
-                                  // Login berhasil → navigasi ke HomePage
-                                  Navigator.pushAndRemoveUntil(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) => const HomePage()),
-                                    (route) => false,
-                                  );
-                                } else {
-                                  // Login gagal → tampilkan pesan error
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(result['message']),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          elevation: 2,
-                        ),
-                        // Tampilkan loading spinner saat proses login
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
-                              )
-                            : const Text('Masuk',
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Divider
-                    Row(
-                      children: [
-                        Expanded(
-                            child: Divider(
-                                color: isDark
-                                    ? Colors.grey[800]
-                                    : Colors.grey[200])),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('Atau masuk dengan',
-                              style:
-                                  TextStyle(color: mutedColor, fontSize: 12)),
-                        ),
-                        Expanded(
-                            child: Divider(
-                                color: isDark
-                                    ? Colors.grey[800]
-                                    : Colors.grey[200])),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Social Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                            child: _buildSocialButton(
-                                'Google',
-                                'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
-                                surfaceColor,
-                                textColor,
-                                isDark)),
-                        const SizedBox(width: 16),
-                        Expanded(
-                            child: _buildSocialButton(
-                                'Facebook',
-                                'https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg',
-                                surfaceColor,
-                                textColor,
-                                isDark)),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Register Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Belum punya akun? ',
-                            style: TextStyle(color: mutedColor, fontSize: 14)),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const RegisterPage()));
+                        // Guest Login
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const RoleBasedShell(role: 'buyer')),
+                              (route) => false,
+                            );
                           },
-                          child: Text('Daftar Sekarang',
+                          icon: Text('Masuk sebagai Tamu',
                               style: TextStyle(
-                                  color: primaryColor,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold)),
+                                  color: mutedColor,
+                                  fontSize: 12,
+                                  fontFamily:
+                                      GoogleFonts.poppins().fontFamily)),
+                          label: Icon(Icons.arrow_forward,
+                              size: 14, color: mutedColor),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
-
-                    // Guest Login
-                    TextButton.icon(
-                      onPressed: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const HomePage()),
-                          (route) => false,
-                        );
-                      },
-                      icon: Text('Masuk sebagai Tamu',
-                          style: TextStyle(color: mutedColor, fontSize: 12)),
-                      label: Icon(Icons.arrow_forward,
-                          size: 14, color: mutedColor),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -381,14 +430,20 @@ class _LoginPageState extends State<LoginPage> {
       children: [
         Text(label,
             style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w500, color: textColor)),
+                fontFamily: GoogleFonts.poppins().fontFamily,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: textColor)),
         const SizedBox(height: 8),
         TextField(
           controller: controller, // ← dihubungkan
-          style: TextStyle(color: textColor),
+          style: TextStyle(
+              color: textColor, fontFamily: GoogleFonts.poppins().fontFamily),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[400]),
+            hintStyle: TextStyle(
+                color: Colors.grey[400],
+                fontFamily: GoogleFonts.poppins().fontFamily),
             prefixIcon: Icon(icon, color: Colors.grey[400], size: 20),
             filled: true,
             fillColor: surfaceColor,
@@ -414,8 +469,8 @@ class _LoginPageState extends State<LoginPage> {
       Color textColor, bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: surfaceColor,
         borderRadius: BorderRadius.circular(12),
+        color: surfaceColor,
         border:
             Border.all(color: isDark ? Colors.grey[800]! : Colors.grey[200]!),
       ),

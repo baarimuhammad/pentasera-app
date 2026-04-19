@@ -1,11 +1,38 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  // Emulator Android  → 10.0.2.2
-  // Device fisik      → IP WiFi laptop kamu (cek: ipconfig / ifconfig)
-  static const String baseUrl = 'http://localhost:8000/api';
+  // ─────────────────────────────────────────
+  // BASE URL — auto-detect platform
+  // ─────────────────────────────────────────
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8000/api';
+    }
+    // Android emulator → 10.0.2.2, iOS simulator → localhost
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'http://10.0.2.2:8000/api';
+      case TargetPlatform.iOS:
+        return 'http://localhost:8000/api';
+      default:
+        return 'http://localhost:8000/api';
+    }
+  }
+
+  // ─────────────────────────────────────────
+  // AUTH HEADERS
+  // ─────────────────────────────────────────
+  static Future<Map<String, String>> authHeaders() async {
+    final token = await getToken();
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
 
   // ─────────────────────────────────────────
   // LOGIN
@@ -29,6 +56,7 @@ class AuthService {
         await prefs.setString('token', data['token']);
         await prefs.setString('user_nama', data['user']['nama'] ?? '');
         await prefs.setString('user_role', data['user']['role'] ?? '');
+        await prefs.setString('user_email', data['user']['email'] ?? '');
         return {'success': true, 'data': data};
       } else if (response.statusCode == 422) {
         String errorMsg = 'Email atau password salah';
@@ -47,7 +75,10 @@ class AuthService {
         return {'success': false, 'message': data['message'] ?? 'Login gagal'};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Tidak dapat terhubung ke server. '};
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server.'
+      };
     }
   }
 
@@ -72,8 +103,7 @@ class AuthService {
           'nama': nama,
           'email': email,
           'password': password,
-          'password_confirmation':
-              passwordConfirmation, // wajib ada untuk Laravel 'confirmed'
+          'password_confirmation': passwordConfirmation,
           'role': role,
         }),
       );
@@ -81,18 +111,16 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
-        // Simpan token langsung setelah register (auto login)
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', data['token']);
         await prefs.setString('user_nama', data['user']['nama'] ?? '');
         await prefs.setString('user_role', data['user']['role'] ?? '');
+        await prefs.setString('user_email', data['user']['email'] ?? '');
         return {'success': true, 'data': data};
       } else if (response.statusCode == 422) {
-        // Validasi gagal dari Laravel — ambil pesan error pertama yang ada
         String errorMsg = 'Registrasi gagal';
         if (data['errors'] != null) {
           final errors = data['errors'] as Map<String, dynamic>;
-          // Ambil pesan error pertama dari field manapun
           final firstField = errors.values.first;
           if (firstField is List && firstField.isNotEmpty) {
             errorMsg = firstField[0];
@@ -108,7 +136,10 @@ class AuthService {
         };
       }
     } catch (e) {
-      return {'success': false, 'message': 'Tidak dapat terhubung ke server. '};
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server.'
+      };
     }
   }
 
@@ -116,14 +147,39 @@ class AuthService {
   // LOGOUT
   // ─────────────────────────────────────────
   static Future<void> logout() async {
+    try {
+      final headers = await authHeaders();
+      await http.post(Uri.parse('$baseUrl/logout'), headers: headers);
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     await prefs.remove('user_nama');
     await prefs.remove('user_role');
+    await prefs.remove('user_email');
   }
 
   // ─────────────────────────────────────────
-  // HELPER
+  // GET ME (profil user dari server)
+  // ─────────────────────────────────────────
+  static Future<Map<String, dynamic>> getMe() async {
+    try {
+      final headers = await authHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/me'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'data': data['data'] ?? data};
+      }
+      return {'success': false, 'message': 'Gagal memuat profil'};
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // ─────────────────────────────────────────
+  // HELPERS
   // ─────────────────────────────────────────
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -143,5 +199,10 @@ class AuthService {
   static Future<String?> getUserRole() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('user_role');
+  }
+
+  static Future<String?> getUserEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_email');
   }
 }

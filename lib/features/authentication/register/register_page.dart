@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pentasera_app/services/auth_service.dart';
-// ⚠️ Sesuaikan path di bawah ini dengan lokasi file home_page.dart kamu
-import 'package:pentasera_app/features/public_pages/home/home.dart';
+import 'package:pentasera_app/core/app_router.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -80,10 +81,11 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      // Registrasi berhasil → langsung masuk ke HomePage
+      // Registrasi berhasil → langsung masuk berdasarkan role
+      final role = result['data']?['user']?['role'] ?? 'buyer';
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
+        MaterialPageRoute(builder: (_) => RoleBasedShell(role: role)),
         (route) => false,
       );
     } else {
@@ -116,22 +118,20 @@ class _RegisterPageState extends State<RegisterPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                          color: primaryColor, shape: BoxShape.circle),
-                      child: const Icon(Icons.theater_comedy,
-                          color: Colors.white, size: 20),
-                    ),
+                    Image.asset(
+                          'assets/images/logo_pentasera.png',
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.contain,
+                        ),
                     const SizedBox(width: 8),
                     Text(
                       'PENTASERA',
                       style: TextStyle(
-                          fontFamily: 'Playfair Display',
+                          fontFamily: GoogleFonts.montserrat().fontFamily,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: primaryColor,
+                          color: textColor,
                           letterSpacing: 1.5),
                     ),
                   ],
@@ -139,7 +139,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 8),
                 Text(
                   'Bergabung dan rasakan keajaiban budaya nusantara',
-                  style: TextStyle(color: mutedColor, fontSize: 14),
+                  style: TextStyle(color: mutedColor, fontSize: 14, fontFamily: GoogleFonts.poppins().fontFamily),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
@@ -166,8 +166,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       Center(
                         child: Text('Buat Akun Baru',
                             style: TextStyle(
-                                fontSize: 20,
+                                fontSize: 18,
                                 fontWeight: FontWeight.w600,
+                                fontFamily: GoogleFonts.montserrat().fontFamily,
                                 color: textColor)),
                       ),
                       const SizedBox(height: 24),
@@ -255,7 +256,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                 style: TextStyle(
                                     color: mutedColor,
                                     fontSize: 12,
-                                    fontFamily: 'Plus Jakarta Sans'),
+                                    fontFamily: GoogleFonts.poppins().fontFamily),
                                 children: [
                                   const TextSpan(text: 'Saya menyetujui '),
                                   TextSpan(
@@ -351,6 +352,7 @@ class _RegisterPageState extends State<RegisterPage> {
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
+                fontFamily: GoogleFonts.montserrat().fontFamily,
                 color: textColor)),
         const SizedBox(height: 8),
         TextField(
@@ -359,7 +361,7 @@ class _RegisterPageState extends State<RegisterPage> {
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+            hintStyle: const TextStyle(color: Colors.grey, fontSize: 10, fontFamily: 'Poppins'),
             prefixIcon: Icon(icon, color: Colors.grey, size: 20),
             filled: true,
             fillColor: bgColor,
@@ -398,6 +400,7 @@ class _RegisterPageState extends State<RegisterPage> {
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
+                fontFamily: GoogleFonts.montserrat().fontFamily,
                 color: textColor)),
         const SizedBox(height: 8),
         TextField(
@@ -406,7 +409,7 @@ class _RegisterPageState extends State<RegisterPage> {
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+            hintStyle: const TextStyle(color: Colors.grey, fontSize: 10, fontFamily: 'Poppins'),
             prefixIcon:
                 const Icon(Icons.lock_outline, color: Colors.grey, size: 20),
             suffixIcon: IconButton(
