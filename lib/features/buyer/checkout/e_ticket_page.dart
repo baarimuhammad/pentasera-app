@@ -126,11 +126,11 @@ class ETicketPage extends StatelessWidget {
                         size: 180,
                         backgroundColor: Colors.white,
                         eyeStyle: const QrEyeStyle(
-                          eyeShape: QrEyeShape.roundedOuter,
+                          eyeShape: QrEyeShape.square,
                           color: Color(0xFF221910),
                         ),
                         dataModuleStyle: const QrDataModuleStyle(
-                          dataModuleShape: QrDataModuleShape.roundedOuter,
+                          dataModuleShape: QrDataModuleShape.square,
                           color: Color(0xFF221910),
                         ),
                       ),

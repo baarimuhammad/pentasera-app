@@ -155,11 +155,11 @@ class DetailTiketPage extends StatelessWidget {
                       size: 200,
                       backgroundColor: isDark ? const Color(0xFF1a1510) : const Color(0xFFF8F7F5),
                       eyeStyle: QrEyeStyle(
-                        eyeShape: QrEyeShape.roundedOuter,
+                        eyeShape: QrEyeShape.square,
                         color: isDark ? AppColors.textDark : const Color(0xFF221910),
                       ),
                       dataModuleStyle: QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.roundedOuter,
+                        dataModuleShape: QrDataModuleShape.square,
                         color: isDark ? AppColors.textDark : const Color(0xFF221910),
                       ),
                     ),
