@@ -47,11 +47,9 @@ class _InformasiDasarAdminPageState extends State<InformasiDasarAdminPage> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
     final surfaceColor =
         isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final borderColor =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
       backgroundColor:
@@ -95,8 +93,8 @@ class _InformasiDasarAdminPageState extends State<InformasiDasarAdminPage> {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.red.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -130,17 +128,25 @@ class _InformasiDasarAdminPageState extends State<InformasiDasarAdminPage> {
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold)),
                         const SizedBox(height: 20),
-
-                        _buildField('Nama', _namaController,
-                            Icons.person_outline, isDark, textColor,
-                            surfaceColor, borderColor),
+                        _buildField(
+                            'Nama',
+                            _namaController,
+                            Icons.person_outline,
+                            isDark,
+                            textColor,
+                            surfaceColor,
+                            borderColor),
                         const SizedBox(height: 16),
-                        _buildField('Email', _emailController,
-                            Icons.email_outlined, isDark, textColor,
-                            surfaceColor, borderColor,
+                        _buildField(
+                            'Email',
+                            _emailController,
+                            Icons.email_outlined,
+                            isDark,
+                            textColor,
+                            surfaceColor,
+                            borderColor,
                             type: TextInputType.emailAddress),
                         const SizedBox(height: 24),
-
                         SizedBox(
                           width: double.infinity,
                           height: 50,
@@ -189,9 +195,7 @@ class _InformasiDasarAdminPageState extends State<InformasiDasarAdminPage> {
       children: [
         Text(label,
             style: TextStyle(
-                color: textColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w500)),
+                color: textColor, fontSize: 13, fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -202,7 +206,8 @@ class _InformasiDasarAdminPageState extends State<InformasiDasarAdminPage> {
                 color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
                 size: 20),
             filled: true,
-            fillColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+            fillColor:
+                isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
@@ -215,8 +220,7 @@ class _InformasiDasarAdminPageState extends State<InformasiDasarAdminPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 2),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
           ),
         ),

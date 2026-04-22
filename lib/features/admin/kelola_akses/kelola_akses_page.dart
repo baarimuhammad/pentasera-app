@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/user_service.dart';
@@ -89,8 +88,8 @@ class _KelolAksesPageState extends State<KelolAksesPage>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
-                labelStyle: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600),
+                labelStyle:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                 dividerColor: Colors.transparent,
                 tabs: const [
                   Tab(text: 'Daftar Pengguna'),
@@ -108,8 +107,10 @@ class _KelolAksesPageState extends State<KelolAksesPage>
                     : TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildUserList(isDark, textColor, mutedColor, canChangeRole: false),
-                          _buildUserList(isDark, textColor, mutedColor, canChangeRole: true),
+                          _buildUserList(isDark, textColor, mutedColor,
+                              canChangeRole: false),
+                          _buildUserList(isDark, textColor, mutedColor,
+                              canChangeRole: true),
                         ],
                       ),
           ),
@@ -127,8 +128,7 @@ class _KelolAksesPageState extends State<KelolAksesPage>
           children: [
             Icon(Icons.people_outline, size: 48, color: mutedColor),
             const SizedBox(height: 12),
-            Text('Belum ada pengguna',
-                style: TextStyle(color: mutedColor)),
+            Text('Belum ada pengguna', style: TextStyle(color: mutedColor)),
           ],
         ),
       );
@@ -146,12 +146,11 @@ class _KelolAksesPageState extends State<KelolAksesPage>
     );
   }
 
-  Widget _buildUserCard(Map<String, dynamic> user, bool isDark,
-      Color textColor, Color mutedColor, bool canChangeRole) {
+  Widget _buildUserCard(Map<String, dynamic> user, bool isDark, Color textColor,
+      Color mutedColor, bool canChangeRole) {
     final surfaceColor =
         isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final borderColor =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     final nama = user['nama'] ?? user['name'] ?? 'User';
     final email = user['email'] ?? '';
@@ -198,8 +197,7 @@ class _KelolAksesPageState extends State<KelolAksesPage>
                         fontWeight: FontWeight.w600,
                         fontSize: 14)),
                 const SizedBox(height: 2),
-                Text(email,
-                    style: TextStyle(color: mutedColor, fontSize: 12)),
+                Text(email, style: TextStyle(color: mutedColor, fontSize: 12)),
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -280,13 +278,16 @@ class _KelolAksesPageState extends State<KelolAksesPage>
             children: [
               Text('Ubah role untuk ${user['nama'] ?? user['name']}'),
               const SizedBox(height: 16),
-              ...['buyer', 'creator', 'admin'].map((role) => RadioListTile<String>(
+              ...[
+                'buyer',
+                'creator',
+                'admin'
+              ].map((role) => RadioListTile<String>(
                     value: role,
                     groupValue: selectedRole,
                     title: Text(role.toUpperCase()),
                     activeColor: AppColors.primary,
-                    onChanged: (v) =>
-                        setDialogState(() => selectedRole = v!),
+                    onChanged: (v) => setDialogState(() => selectedRole = v!),
                   )),
             ],
           ),

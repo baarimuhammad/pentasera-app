@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:pentasera_app/main.dart';
@@ -49,9 +48,15 @@ class _EventSayaPageState extends State<EventSayaPage>
         case 'draft':
           return s == 'draft';
         case 'aktif':
-          return s == 'aktif' || s == 'active' || s == 'published' || s == 'publikasi';
+          return s == 'aktif' ||
+              s == 'active' ||
+              s == 'published' ||
+              s == 'publikasi';
         case 'lalu':
-          return s == 'selesai' || s == 'finished' || s == 'lalu' || s == 'past';
+          return s == 'selesai' ||
+              s == 'finished' ||
+              s == 'lalu' ||
+              s == 'past';
         default:
           return true;
       }
@@ -106,8 +111,8 @@ class _EventSayaPageState extends State<EventSayaPage>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
-                labelStyle: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600),
+                labelStyle:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                 dividerColor: Colors.transparent,
                 tabs: const [
                   Tab(text: 'Draft'),
@@ -130,8 +135,7 @@ class _EventSayaPageState extends State<EventSayaPage>
                             const Icon(Icons.error_outline,
                                 size: 48, color: Colors.red),
                             const SizedBox(height: 12),
-                            Text(_error!,
-                                style: TextStyle(color: mutedColor)),
+                            Text(_error!, style: TextStyle(color: mutedColor)),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: _loadEvents,
@@ -146,12 +150,12 @@ class _EventSayaPageState extends State<EventSayaPage>
                     : TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildEventList(
-                              _filterEvents('draft'), isDark, textColor, mutedColor),
-                          _buildEventList(
-                              _filterEvents('aktif'), isDark, textColor, mutedColor),
-                          _buildEventList(
-                              _filterEvents('lalu'), isDark, textColor, mutedColor),
+                          _buildEventList(_filterEvents('draft'), isDark,
+                              textColor, mutedColor),
+                          _buildEventList(_filterEvents('aktif'), isDark,
+                              textColor, mutedColor),
+                          _buildEventList(_filterEvents('lalu'), isDark,
+                              textColor, mutedColor),
                         ],
                       ),
           ),
@@ -160,8 +164,8 @@ class _EventSayaPageState extends State<EventSayaPage>
     );
   }
 
-  Widget _buildEventList(List<dynamic> events, bool isDark, Color textColor,
-      Color mutedColor) {
+  Widget _buildEventList(
+      List<dynamic> events, bool isDark, Color textColor, Color mutedColor) {
     if (events.isEmpty) {
       return Center(
         child: Column(
@@ -191,8 +195,7 @@ class _EventSayaPageState extends State<EventSayaPage>
       Color textColor, Color mutedColor) {
     final surfaceColor =
         isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final borderColor =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     final nama = event['nama'] ?? event['name'] ?? 'Event';
     final tanggal = event['tanggal_mulai'] ?? event['tanggal'] ?? '';
@@ -225,7 +228,8 @@ class _EventSayaPageState extends State<EventSayaPage>
             ),
             child: imageUrl.isEmpty
                 ? const Center(
-                    child: Icon(Icons.image, color: AppColors.primary, size: 32))
+                    child:
+                        Icon(Icons.image, color: AppColors.primary, size: 32))
                 : null,
           ),
 
@@ -289,7 +293,8 @@ class _EventSayaPageState extends State<EventSayaPage>
                           );
                         },
                         icon: const Icon(Icons.edit, size: 16),
-                        label: const Text('Edit', style: TextStyle(fontSize: 12)),
+                        label:
+                            const Text('Edit', style: TextStyle(fontSize: 12)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.primary),
@@ -304,7 +309,8 @@ class _EventSayaPageState extends State<EventSayaPage>
                       child: OutlinedButton.icon(
                         onPressed: () => _confirmDelete(event),
                         icon: const Icon(Icons.delete_outline, size: 16),
-                        label: const Text('Hapus', style: TextStyle(fontSize: 12)),
+                        label:
+                            const Text('Hapus', style: TextStyle(fontSize: 12)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red,
                           side: const BorderSide(color: Colors.red),
@@ -347,8 +353,8 @@ class _EventSayaPageState extends State<EventSayaPage>
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus Event'),
-        content: Text(
-            'Yakin ingin menghapus "${event['nama'] ?? event['name']}"?'),
+        content:
+            Text('Yakin ingin menghapus "${event['nama'] ?? event['name']}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

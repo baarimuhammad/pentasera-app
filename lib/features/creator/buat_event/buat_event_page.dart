@@ -559,18 +559,16 @@ class _BuatEventPageState extends State<BuatEventPage> {
 
     setState(() => _isLoading = true);
 
-    final eventData = {
-      'nama': _namaController.text.trim(),
-      'kategori': _kategori,
-      'deskripsi': _deskripsiController.text.trim(),
-      'tanggal_mulai': _tanggalMulai?.toIso8601String(),
-      'tanggal_selesai': _tanggalSelesai?.toIso8601String(),
-      'lokasi': _lokasiController.text.trim(),
-      'kapasitas': int.tryParse(_kapasitasController.text) ?? 0,
-      'status': status,
-    };
-
-    final eventResult = await EventService.createEvent(eventData);
+    final eventResult = await EventService.createEvent(
+      nama: _namaController.text.trim(),
+      kategori: _kategori,
+      deskripsi: _deskripsiController.text.trim(),
+      tanggalMulai: _tanggalMulai?.toIso8601String() ?? '',
+      tanggalSelesai: _tanggalSelesai?.toIso8601String() ?? '',
+      lokasi: _lokasiController.text.trim(),
+      kapasitas: int.tryParse(_kapasitasController.text) ?? 0,
+      status: status,
+    );
 
     if (!eventResult['success']) {
       _showError(eventResult['message'] ?? 'Gagal membuat event');
@@ -581,12 +579,12 @@ class _BuatEventPageState extends State<BuatEventPage> {
     if (status == 'publikasi' &&
         _namaTicketController.text.trim().isNotEmpty) {
       final eventId = eventResult['data']['id'];
-      await EventService.createTicket({
-        'event_id': eventId,
-        'nama': _namaTicketController.text.trim(),
-        'harga': int.tryParse(_hargaController.text) ?? 0,
-        'stok': int.tryParse(_stokController.text) ?? 0,
-      });
+      await EventService.createTicket(
+        eventId: eventId,
+        nama: _namaTicketController.text.trim(),
+        harga: int.tryParse(_hargaController.text) ?? 0,
+        stok: int.tryParse(_stokController.text) ?? 0,
+      );
     }
 
     if (mounted) {

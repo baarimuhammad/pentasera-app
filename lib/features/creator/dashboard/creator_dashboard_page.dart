@@ -5,7 +5,6 @@ import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/auth_service.dart';
 import 'package:pentasera_app/services/order_service.dart';
 import 'package:pentasera_app/services/event_service.dart';
-import 'package:pentasera_app/features/authentication/login/login_page.dart';
 
 class CreatorDashboardPage extends StatefulWidget {
   const CreatorDashboardPage({super.key});
@@ -61,9 +60,11 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
         _totalTransaksi = orders.length;
         for (var order in orders) {
           final qty = order['qty'] ?? order['quantity'] ?? 1;
-          _totalTiketTerjual += (qty is int ? qty : int.tryParse(qty.toString()) ?? 1);
+          _totalTiketTerjual +=
+              (qty is int ? qty : int.tryParse(qty.toString()) ?? 1);
           final total = order['total'] ?? order['jumlah'] ?? 0;
-          _totalPenjualan += (total is int ? total : int.tryParse(total.toString()) ?? 0);
+          _totalPenjualan +=
+              (total is int ? total : int.tryParse(total.toString()) ?? 0);
         }
         _totalPengunjung = _totalTiketTerjual;
       }
@@ -79,10 +80,9 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
     final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
     final surfaceColor =
         isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final borderColor =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
-    final formatter = NumberFormat.currency(
-        locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final formatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
     return Scaffold(
       backgroundColor:
@@ -272,8 +272,14 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
     );
   }
 
-  Widget _statCard(IconData icon, String label, String value,
-      Color surfaceColor, Color borderColor, Color textColor, Color mutedColor,
+  Widget _statCard(
+      IconData icon,
+      String label,
+      String value,
+      Color surfaceColor,
+      Color borderColor,
+      Color textColor,
+      Color mutedColor,
       Color accentColor) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -302,8 +308,7 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
                       color: textColor,
                       fontSize: 20,
                       fontWeight: FontWeight.bold)),
-              Text(label,
-                  style: TextStyle(color: mutedColor, fontSize: 11)),
+              Text(label, style: TextStyle(color: mutedColor, fontSize: 11)),
             ],
           ),
         ],

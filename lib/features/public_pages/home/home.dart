@@ -5,7 +5,6 @@ import 'package:pentasera_app/features/public_pages/detail_event/detail_event_pa
 import 'package:pentasera_app/features/public_pages/tentang_kami/tentang_kami_page.dart';
 import 'package:pentasera_app/features/public_pages/kontak/kontak_page.dart';
 import 'package:pentasera_app/features/public_pages/legal/legal_page.dart';
-import 'package:pentasera_app/services/event_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -34,9 +33,47 @@ class _HomePageState extends State<HomePage> {
               _buildEventTerdekat(textColor, isDark),
               _buildTopEvent(textColor, isDark),
               _buildEventBerakhir(textColor),
+              const SizedBox(height: 32),
+              _buildFooterLinks(context, textColor, isDark),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFooterLinks(BuildContext context, Color textColor, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.primary.withOpacity(0.05) : Colors.white,
+        border: Border(top: BorderSide(color: AppColors.primary.withOpacity(0.1))),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TentangKamiPage())),
+                child: Text('Tentang Kami', style: TextStyle(color: textColor)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KontakPage())),
+                child: Text('Kontak', style: TextStyle(color: textColor)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalPage(type: 'syarat'))),
+                child: Text('Legal', style: TextStyle(color: textColor)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '© 2024 Pentasera. All rights reserved.',
+            style: TextStyle(color: isDark ? AppColors.slate400 : AppColors.slate600, fontSize: 12),
+          ),
+        ],
       ),
     );
   }
@@ -221,7 +258,9 @@ PreferredSizeWidget _buildAppBar(Color textColor) {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const DetailEventPage(eventId: 1)));
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -359,23 +398,27 @@ PreferredSizeWidget _buildAppBar(Color textColor) {
       required String category,
       required String title,
       required String location}) {
-    return Container(
-      width: 240,
-      margin: const EdgeInsets.only(right: 16.0, bottom: 8.0),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.primary.withOpacity(0.05) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.05)),
-        boxShadow: isDark
-            ? []
-            : [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2))
-              ],
-      ),
-      child: Column(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const DetailEventPage(eventId: 1)));
+      },
+      child: Container(
+        width: 240,
+        margin: const EdgeInsets.only(right: 16.0, bottom: 8.0),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.primary.withOpacity(0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary.withOpacity(0.05)),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2))
+                ],
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
@@ -442,7 +485,7 @@ PreferredSizeWidget _buildAppBar(Color textColor) {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildTopEvent(Color textColor, bool isDark) {
@@ -477,14 +520,18 @@ PreferredSizeWidget _buildAppBar(Color textColor) {
 
   Widget _buildRankTile(bool isDark, Color textColor, String rank,
       String imageUrl, String title, String ratingText) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
-      ),
-      child: Row(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const DetailEventPage(eventId: 1)));
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        ),
+        child: Row(
         children: [
           Text(rank,
               style: TextStyle(
@@ -529,7 +576,7 @@ PreferredSizeWidget _buildAppBar(Color textColor) {
               color: AppColors.primary, size: 16),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildEventBerakhir(Color textColor) {
@@ -565,9 +612,13 @@ PreferredSizeWidget _buildAppBar(Color textColor) {
   }
 
   Widget _buildPastEventCard(String imageUrl, String title, String date) {
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const DetailEventPage(eventId: 1)));
+      },
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           image: DecorationImage(
@@ -605,6 +656,6 @@ PreferredSizeWidget _buildAppBar(Color textColor) {
           ),
         ),
       ),
-    );
+    ));
   }
 }

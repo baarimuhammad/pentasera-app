@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:pentasera_app/main.dart';
 
 class LegalPage extends StatelessWidget {
@@ -42,8 +41,7 @@ class LegalPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.primary.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: AppColors.primary.withOpacity(0.1)),
+                border: Border.all(color: AppColors.primary.withOpacity(0.1)),
               ),
               child: Row(
                 children: [
@@ -62,8 +60,7 @@ class LegalPage extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15)),
                         Text('Terakhir diperbarui: 1 Januari 2026',
-                            style: TextStyle(
-                                color: mutedColor, fontSize: 12)),
+                            style: TextStyle(color: mutedColor, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -71,7 +68,9 @@ class LegalPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            ...(isSyarat ? _syaratContent(textColor, mutedColor) : _privasiContent(textColor, mutedColor)),
+            ...(isSyarat
+                ? _syaratContent(textColor, mutedColor)
+                : _privasiContent(textColor, mutedColor)),
             const SizedBox(height: 24),
           ],
         ),

@@ -598,6 +598,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         'event_id': widget.eventId,
         'ticket_id': widget.ticketId,
         'qty': widget.qty,
+        'total': _total,
       });
 
       if (!orderResult['success']) {

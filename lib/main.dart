@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:pentasera_app/features/authentication/login/login_page.dart';
 import 'package:pentasera_app/core/app_router.dart';
 import 'package:pentasera_app/services/auth_service.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 // ─────────────────────────────────────────
 // Global theme notifier (default: ikuti sistem)
@@ -13,13 +12,14 @@ final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 // Design System — Warna
 // ─────────────────────────────────────────
 class AppColors {
+  // Primary
   static const Color primary = Color(0xFFf27f0d);
 
-  // Background
+  // Backgrounds
   static const Color backgroundLight = Color(0xFFf8f7f5);
   static const Color backgroundDark = Color(0xFF221910);
 
-  // Surface (card, dialog)
+  // Surfaces
   static const Color surfaceLight = Colors.white;
   static const Color surfaceDark = Color(0xFF2D2318);
 
@@ -27,19 +27,19 @@ class AppColors {
   static const Color textLight = Color(0xFF0f172a);
   static const Color textDark = Color(0xFFf1f5f9);
 
-  // Muted text
+  // Muted
   static const Color mutedLight = Color(0xFF475569);
   static const Color mutedDark = Color(0xFF94a3b8);
 
-  // Border
+  // Borders
   static const Color borderLight = Color(0xFFe2e8f0);
   static const Color borderDark = Color(0xFF3D2E22);
 
-  // Legacy aliases
-  static const Color slate900 = textLight;
-  static const Color slate100 = textDark;
-  static const Color slate400 = mutedDark;
-  static const Color slate600 = mutedLight;
+  // Legacy aliases — jangan hapus, dipakai home.dart
+  static const Color slate900 = Color(0xFF0f172a);
+  static const Color slate100 = Color(0xFFf1f5f9);
+  static const Color slate400 = Color(0xFF94a3b8);
+  static const Color slate600 = Color(0xFF475569);
 }
 
 void main() {
