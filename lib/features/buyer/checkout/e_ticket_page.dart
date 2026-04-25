@@ -12,6 +12,7 @@ class ETicketPage extends StatelessWidget {
   final String holderName;
   final String orderId;
   final dynamic eTicketData;
+  final String kodeQr;
 
   const ETicketPage({
     super.key,
@@ -20,6 +21,7 @@ class ETicketPage extends StatelessWidget {
     required this.holderName,
     required this.orderId,
     this.eTicketData,
+    required this.kodeQr,
   });
 
   @override
@@ -31,9 +33,9 @@ class ETicketPage extends StatelessWidget {
         isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
-    final bookingCode = eTicketData?['kode_booking'] ??
-        eTicketData?['booking_code'] ??
-        'ORD-$orderId';
+    // bookingCode no longer needed - using kodeQr parameter directly
+    final backendKodeQr =
+        eTicketData is Map ? eTicketData['kode_qr']?.toString() : null;
 
     return Scaffold(
       backgroundColor:
@@ -121,9 +123,9 @@ class ETicketPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: QrImageView(
-                        data: bookingCode,
+                        data: kodeQr,
                         version: QrVersions.auto,
-                        size: 180,
+                        size: 200,
                         backgroundColor: Colors.white,
                         eyeStyle: const QrEyeStyle(
                           eyeShape: QrEyeShape.square,
@@ -137,14 +139,24 @@ class ETicketPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'ID: $bookingCode',
+                      'Kode QR: $kodeQr',
                       style: TextStyle(
                           color: mutedColor,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 1),
                     ),
-
+                    if (backendKodeQr != null && backendKodeQr.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          backendKodeQr,
+                          style: TextStyle(
+                              color: mutedColor,
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic),
+                        ),
+                      ),
                     const SizedBox(height: 24),
 
                     // Dashed divider

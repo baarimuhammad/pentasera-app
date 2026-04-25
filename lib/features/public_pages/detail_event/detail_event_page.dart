@@ -21,7 +21,7 @@ class _DetailEventPageState extends State<DetailEventPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Map<String, dynamic>? _event;
-  List<dynamic> _tickets = [];
+  List<Map<String, dynamic>> _tickets = [];
   bool _isLoading = true;
   String? _error;
 
@@ -41,17 +41,27 @@ class _DetailEventPageState extends State<DetailEventPage>
       _error = null;
     });
 
-    final eventResult = await EventService.getEventById(widget.eventId);
-    if (eventResult['success']) {
-      _event = eventResult['data'];
-    } else {
-      _error = eventResult['message'];
+    final eventId = int.tryParse(widget.eventId.toString()) ?? 0;
+    if (eventId == 0) {
+      _error = 'Event tidak valid';
+      if (mounted) setState(() => _isLoading = false);
+      return;
     }
 
-    final ticketResult =
-        await EventService.getTicketsByEvent(widget.eventId);
-    if (ticketResult['success'] && ticketResult['data'] is List) {
-      _tickets = ticketResult['data'];
+    final eventResult = await EventService.getEventById(eventId);
+    if (eventResult['success'] == true && eventResult['data'] is Map) {
+      _event = Map<String, dynamic>.from(eventResult['data'] as Map);
+    } else {
+      _error = eventResult['message'] ?? 'Event tidak ditemukan';
+    }
+
+    final ticketResult = await EventService.getTicketsByEvent(eventId);
+    if (ticketResult['success'] == true) {
+      _tickets = (ticketResult['data'] as List?)
+              ?.whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList() ??
+          [];
     }
 
     if (mounted) setState(() => _isLoading = false);
@@ -74,15 +84,22 @@ class _DetailEventPageState extends State<DetailEventPage>
     if (_isLoading) return _buildLoadingSkeleton(isDark);
     if (_error != null) return _buildError();
 
-    final event = _event!;
-    final imageUrl = event['foto'] ?? event['image'] ?? event['gambar'] ?? '';
-    final eventName = event['nama'] ?? event['name'] ?? 'Event';
-    final tanggal = event['tanggal_mulai'] ?? event['tanggal'] ?? event['date'] ?? '';
-    final lokasi = event['lokasi'] ?? event['location'] ?? '';
-    final organizer = event['organizer']?['nama'] ?? event['organizer_name'] ?? '';
-    final deskripsi = event['deskripsi'] ?? event['description'] ?? '';
-    final kategori = event['kategori'] ?? event['category'] ?? '';
-    final tanggalSelesai = event['tanggal_selesai'] ?? '';
+    final event = _event ?? {};
+    final imageUrl =
+        (event['foto'] ?? event['image'] ?? event['gambar'] ?? '').toString();
+    final eventName = (event['nama_event'] ?? event['nama'] ?? 'Event')
+        .toString();
+    final tanggal =
+        (event['event_datetime'] ?? event['tanggal_mulai'] ?? '').toString();
+    final lokasi = (event['lokasi'] ?? event['location'] ?? '').toString();
+    final organizerData =
+        event['organizer'] is Map ? event['organizer'] as Map : null;
+    final organizer =
+        (organizerData?['nama'] ?? event['organizer_name'] ?? '').toString();
+    final deskripsi =
+        (event['deskripsi'] ?? event['description'] ?? '').toString();
+    final kategori = (event['kategori'] ?? event['category'] ?? '').toString();
+    final tanggalSelesai = (event['tanggal_selesai'] ?? '').toString();
     final kapasitas = event['kapasitas'] ?? event['capacity'] ?? '';
 
     return Scaffold(
@@ -92,7 +109,8 @@ class _DetailEventPageState extends State<DetailEventPage>
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
-            backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+            backgroundColor:
+                isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
             leading: IconButton(
               icon: Container(
                 padding: const EdgeInsets.all(8),
@@ -100,7 +118,8 @@ class _DetailEventPageState extends State<DetailEventPage>
                   color: Colors.black.withOpacity(0.3),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                child:
+                    const Icon(Icons.arrow_back, color: Colors.white, size: 20),
               ),
               onPressed: () => Navigator.pop(context),
             ),
@@ -117,12 +136,14 @@ class _DetailEventPageState extends State<DetailEventPage>
                           ),
                           errorWidget: (_, __, ___) => Container(
                             color: AppColors.primary.withOpacity(0.1),
-                            child: const Icon(Icons.image, size: 64, color: AppColors.primary),
+                            child: const Icon(Icons.image,
+                                size: 64, color: AppColors.primary),
                           ),
                         )
                       : Container(
                           color: AppColors.primary.withOpacity(0.1),
-                          child: const Icon(Icons.event, size: 64, color: AppColors.primary),
+                          child: const Icon(Icons.event,
+                              size: 64, color: AppColors.primary),
                         ),
                   // Gradient overlay
                   Container(
@@ -131,7 +152,9 @@ class _DetailEventPageState extends State<DetailEventPage>
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          (isDark ? AppColors.backgroundDark : AppColors.backgroundLight),
+                          (isDark
+                              ? AppColors.backgroundDark
+                              : AppColors.backgroundLight),
                           Colors.transparent,
                         ],
                         stops: const [0.0, 0.6],
@@ -264,15 +287,45 @@ class _DetailEventPageState extends State<DetailEventPage>
                     padding: const EdgeInsets.only(top: 20, bottom: 100),
                     child: Column(
                       children: [
-                        _buildDetailCard('Kategori', kategori, Icons.category, surfaceColor, textColor, mutedColor, isDark),
-                        _buildDetailCard('Tanggal Mulai', _formatDate(tanggal), Icons.event, surfaceColor, textColor, mutedColor, isDark),
+                        _buildDetailCard('Kategori', kategori, Icons.category,
+                            surfaceColor, textColor, mutedColor, isDark),
+                        _buildDetailCard(
+                            'Tanggal Mulai',
+                            _formatDate(tanggal),
+                            Icons.event,
+                            surfaceColor,
+                            textColor,
+                            mutedColor,
+                            isDark),
                         if (tanggalSelesai.isNotEmpty)
-                          _buildDetailCard('Tanggal Selesai', _formatDate(tanggalSelesai), Icons.event_available, surfaceColor, textColor, mutedColor, isDark),
-                        _buildDetailCard('Lokasi', lokasi, Icons.place, surfaceColor, textColor, mutedColor, isDark),
+                          _buildDetailCard(
+                              'Tanggal Selesai',
+                              _formatDate(tanggalSelesai),
+                              Icons.event_available,
+                              surfaceColor,
+                              textColor,
+                              mutedColor,
+                              isDark),
+                        _buildDetailCard('Lokasi', lokasi, Icons.place,
+                            surfaceColor, textColor, mutedColor, isDark),
                         if (kapasitas.toString().isNotEmpty)
-                          _buildDetailCard('Kapasitas', '$kapasitas orang', Icons.people, surfaceColor, textColor, mutedColor, isDark),
+                          _buildDetailCard(
+                              'Kapasitas',
+                              '$kapasitas orang',
+                              Icons.people,
+                              surfaceColor,
+                              textColor,
+                              mutedColor,
+                              isDark),
                         if (organizer.isNotEmpty)
-                          _buildDetailCard('Penyelenggara', organizer, Icons.business, surfaceColor, textColor, mutedColor, isDark),
+                          _buildDetailCard(
+                              'Penyelenggara',
+                              organizer,
+                              Icons.business,
+                              surfaceColor,
+                              textColor,
+                              mutedColor,
+                              isDark),
                       ],
                     ),
                   ),
@@ -424,16 +477,17 @@ class _DetailEventPageState extends State<DetailEventPage>
 
   Widget _buildTicketCard(Map<String, dynamic> ticket, Color surface,
       Color text, Color muted, bool isDark) {
-    final nama = ticket['nama'] ?? ticket['name'] ?? 'Tiket';
+    final nama = ticket['kategori'] ?? ticket['nama'] ?? 'Tiket';
     final harga = ticket['harga'] ?? ticket['price'] ?? 0;
-    final stok = ticket['stok'] ?? ticket['stock'] ?? 0;
-    final desc = ticket['deskripsi'] ?? ticket['description'] ?? '';
-    final id = ticket['id'];
+    final sisaKuota = ticket['sisa_kuota'] ?? ticket['stok'] ?? 0;
+    final sisaKuotaInt = int.tryParse(sisaKuota.toString()) ?? 0;
+    final desc = (ticket['deskripsi'] ?? ticket['description'] ?? '').toString();
+    final id = ticket['id'] ?? 0;
     final qty = _quantities[id] ?? 0;
-    final available = stok is int ? stok > 0 : true;
+    final available = sisaKuotaInt > 0;
 
-    final formatter = NumberFormat.currency(
-        locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final formatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -452,7 +506,7 @@ class _DetailEventPageState extends State<DetailEventPage>
             children: [
               Expanded(
                 child: Text(
-                  nama,
+                  nama.toString(),
                   style: GoogleFonts.playfairDisplay(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -470,7 +524,7 @@ class _DetailEventPageState extends State<DetailEventPage>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  available ? '$stok Sisa' : 'Habis',
+                  available ? '$sisaKuotaInt Sisa' : 'Habis',
                   style: TextStyle(
                     color: available ? Colors.green : Colors.red,
                     fontSize: 11,
@@ -482,7 +536,8 @@ class _DetailEventPageState extends State<DetailEventPage>
           ),
           if (desc.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(desc, style: TextStyle(color: muted, fontSize: 13, height: 1.4)),
+            Text(desc,
+                style: TextStyle(color: muted, fontSize: 13, height: 1.4)),
           ],
           const SizedBox(height: 12),
           Text('Harga mulai dari',
@@ -492,7 +547,8 @@ class _DetailEventPageState extends State<DetailEventPage>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                formatter.format(harga is String ? int.tryParse(harga) ?? 0 : harga),
+                formatter
+                    .format(int.tryParse(harga.toString()) ?? 0),
                 style: TextStyle(
                   color: text,
                   fontSize: 22,
@@ -578,8 +634,9 @@ class _DetailEventPageState extends State<DetailEventPage>
           builder: (_) => CheckoutPage(
             eventId: widget.eventId,
             ticketId: entry.key,
-            ticketName: ticket['nama'] ?? ticket['name'] ?? 'Tiket',
-            price: price is String ? int.tryParse(price) ?? 0 : price,
+            ticketName:
+                (ticket['kategori'] ?? ticket['nama'] ?? 'Tiket').toString(),
+            price: int.tryParse(price.toString()) ?? 0,
             qty: entry.value,
             eventName: eventName,
           ),
@@ -599,10 +656,8 @@ class _DetailEventPageState extends State<DetailEventPage>
   }
 
   Scaffold _buildLoadingSkeleton(bool isDark) {
-    final baseColor =
-        isDark ? Colors.grey[800]! : Colors.grey[300]!;
-    final highlightColor =
-        isDark ? Colors.grey[700]! : Colors.grey[100]!;
+    final baseColor = isDark ? Colors.grey[800]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
 
     return Scaffold(
       body: Shimmer.fromColors(
@@ -686,8 +741,8 @@ class _DetailEventPageState extends State<DetailEventPage>
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 16),
             Text(_error ?? 'Terjadi kesalahan',
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface)),
+                style:
+                    TextStyle(color: Theme.of(context).colorScheme.onSurface)),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadData,

@@ -57,6 +57,8 @@ class AuthService {
         await prefs.setString('user_nama', data['user']['nama'] ?? '');
         await prefs.setString('user_role', data['user']['role'] ?? '');
         await prefs.setString('user_email', data['user']['email'] ?? '');
+        await prefs.setString(
+            'user_created_at', data['user']['created_at'] ?? '');
         return {'success': true, 'data': data};
       } else if (response.statusCode == 422) {
         String errorMsg = 'Email atau password salah';
@@ -75,10 +77,7 @@ class AuthService {
         return {'success': false, 'message': data['message'] ?? 'Login gagal'};
       }
     } catch (e) {
-      return {
-        'success': false,
-        'message': 'Tidak dapat terhubung ke server.'
-      };
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
   }
 
@@ -116,6 +115,8 @@ class AuthService {
         await prefs.setString('user_nama', data['user']['nama'] ?? '');
         await prefs.setString('user_role', data['user']['role'] ?? '');
         await prefs.setString('user_email', data['user']['email'] ?? '');
+        await prefs.setString(
+            'user_created_at', data['user']['created_at'] ?? '');
         return {'success': true, 'data': data};
       } else if (response.statusCode == 422) {
         String errorMsg = 'Registrasi gagal';
@@ -136,10 +137,7 @@ class AuthService {
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'message': 'Tidak dapat terhubung ke server.'
-      };
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
   }
 
@@ -156,6 +154,7 @@ class AuthService {
     await prefs.remove('user_nama');
     await prefs.remove('user_role');
     await prefs.remove('user_email');
+    await prefs.remove('user_created_at');
   }
 
   // ─────────────────────────────────────────
@@ -204,5 +203,10 @@ class AuthService {
   static Future<String?> getUserEmail() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('user_email');
+  }
+
+  static Future<String?> getUserCreatedAt() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_created_at');
   }
 }

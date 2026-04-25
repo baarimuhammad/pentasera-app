@@ -37,7 +37,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _voucherController = TextEditingController();
 
   bool _sameAsBooker = true;
-  String _paymentMethod = 'e_wallet';
+  String _paymentMethod = 'ewallet';
   bool _isLoading = false;
   bool _isLoadingProfile = true;
   String? _voucherApplied;
@@ -54,10 +54,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _loadProfile() async {
     final result = await AuthService.getMe();
-    if (result['success'] && mounted) {
+    if (result['success'] == true && mounted) {
       final data = result['data'];
-      _namaController.text = data['nama'] ?? '';
-      _emailController.text = data['email'] ?? '';
+      _namaController.text =
+          data is Map ? (data['nama'] ?? '').toString() : '';
+      _emailController.text =
+          data is Map ? (data['email'] ?? '').toString() : '';
     } else {
       // Fallback from shared prefs
       _namaController.text = await AuthService.getUserNama() ?? '';
@@ -88,8 +90,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
     final surfaceColor =
         isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final borderColor =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
       backgroundColor:
@@ -231,17 +232,45 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   // Metode Pembayaran
                   _sectionTitle('Metode Pembayaran', textColor),
                   const SizedBox(height: 12),
-                  _buildPaymentOption('e_wallet', 'E-Wallet',
-                      'GoPay, OVO, Dana, ShopeePay', Icons.account_balance_wallet,
-                      isDark, textColor, surfaceColor, borderColor),
+                  _buildPaymentOption(
+                      'ewallet',
+                      'E-Wallet',
+                      'GoPay, OVO, Dana, ShopeePay',
+                      Icons.account_balance_wallet,
+                      isDark,
+                      textColor,
+                      surfaceColor,
+                      borderColor),
                   const SizedBox(height: 8),
-                  _buildPaymentOption('bank_transfer', 'Transfer Bank (Virtual Account)',
-                      'BCA, Mandiri, BNI, BRI', Icons.account_balance,
-                      isDark, textColor, surfaceColor, borderColor),
+                  _buildPaymentOption(
+                      'virtual_account',
+                      'Virtual Account',
+                      'BCA, Mandiri, BNI, BRI',
+                      Icons.account_balance,
+                      isDark,
+                      textColor,
+                      surfaceColor,
+                      borderColor),
                   const SizedBox(height: 8),
-                  _buildPaymentOption('credit_card', 'Kartu Kredit / Debit',
-                      'Visa, Mastercard, JCB', Icons.credit_card,
-                      isDark, textColor, surfaceColor, borderColor),
+                  _buildPaymentOption(
+                      'qris',
+                      'QRIS',
+                      'Scan QR dari aplikasi apapun',
+                      Icons.qr_code,
+                      isDark,
+                      textColor,
+                      surfaceColor,
+                      borderColor),
+                  const SizedBox(height: 8),
+                  _buildPaymentOption(
+                      'bank_transfer',
+                      'Transfer Bank',
+                      'Transfer manual ke rekening tujuan',
+                      Icons.credit_card,
+                      isDark,
+                      textColor,
+                      surfaceColor,
+                      borderColor),
                   const SizedBox(height: 24),
 
                   // Voucher
@@ -332,12 +361,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             mutedColor,
                             isSubtext: true),
                         const SizedBox(height: 8),
-                        _summaryRow('Biaya Layanan',
-                            _formatter.format(_serviceFee), textColor, mutedColor),
+                        _summaryRow(
+                            'Biaya Layanan',
+                            _formatter.format(_serviceFee),
+                            textColor,
+                            mutedColor),
                         if (_voucherApplied != null) ...[
                           const SizedBox(height: 8),
                           _summaryRow(
-                            'Diskon (${ _voucherApplied})',
+                            'Diskon (${_voucherApplied})',
                             '-${_formatter.format(_discount)}',
                             Colors.green,
                             mutedColor,
@@ -444,15 +476,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
             color: textColor, fontSize: 16, fontWeight: FontWeight.bold));
   }
 
-  Widget _buildField(
-      String label,
-      TextEditingController controller,
-      bool isDark,
-      Color textColor,
-      Color surfaceColor,
-      Color borderColor,
-      {TextInputType type = TextInputType.text,
-      String? prefix}) {
+  Widget _buildField(String label, TextEditingController controller,
+      bool isDark, Color textColor, Color surfaceColor, Color borderColor,
+      {TextInputType type = TextInputType.text, String? prefix}) {
     return TextField(
       controller: controller,
       keyboardType: type,
@@ -542,8 +568,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           fontWeight: FontWeight.w600,
                           fontSize: 14)),
                   Text(subtitle,
-                      style: TextStyle(color:
-                          isDark ? AppColors.mutedDark : AppColors.mutedLight,
+                      style: TextStyle(
+                          color: isDark
+                              ? AppColors.mutedDark
+                              : AppColors.mutedLight,
                           fontSize: 11)),
                 ],
               ),
@@ -555,8 +583,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _summaryRow(String label, String value, Color textColor,
-      Color mutedColor,
+  Widget _summaryRow(
+      String label, String value, Color textColor, Color mutedColor,
       {bool isSubtext = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -593,39 +621,85 @@ class _CheckoutPageState extends State<CheckoutPage> {
     setState(() => _isLoading = true);
 
     try {
-      // Step 1: Create Order
-      final orderResult = await OrderService.createOrder({
-        'event_id': widget.eventId,
-        'ticket_id': widget.ticketId,
-        'qty': widget.qty,
-        'total': _total,
-      });
-
-      if (!orderResult['success']) {
-        _showError(orderResult['message'] ?? 'Gagal membuat pesanan');
+      // Ambil user_id dari /me
+      final meResult = await AuthService.getMe();
+      if (meResult['success'] != true) {
+        _showError('Gagal memuat data pengguna');
+        return;
+      }
+      final meData = meResult['data'];
+      final userId = meData is Map ? meData['id'] : null;
+      if (userId == null) {
+        _showError('Data pengguna tidak valid');
         return;
       }
 
-      final orderId = orderResult['data']['id'] ?? orderResult['data']['order_id'];
+      // Step 1: Buat Order (hanya user_id + total_harga)
+      final orderResult = await OrderService.createOrder({
+        'user_id': userId,
+        'total_harga': _total,
+      });
+      if (orderResult['success'] != true) {
+        _showError(orderResult['message'] ?? 'Gagal membuat pesanan');
+        return;
+      }
+      final orderData = orderResult['data'];
+      final orderId = orderData is Map ? orderData['id'] : null;
+      if (orderId == null) {
+        _showError('Data pesanan tidak valid');
+        return;
+      }
 
-      // Step 2: Create Payment
+      final ticketId = widget.ticketId ?? 0;
+      if (ticketId == 0) {
+        _showError('Data tiket tidak valid');
+        return;
+      }
+
+      // Step 2: Buat Detail Order (ticket_id + jumlah + subtotal)
+      final detailResult = await OrderService.createDetailOrder({
+        'order_id': orderId,
+        'ticket_id': ticketId,
+        'jumlah': widget.qty,
+        'subtotal': widget.price * widget.qty,
+      });
+      if (detailResult['success'] != true) {
+        _showError(detailResult['message'] ?? 'Gagal membuat detail pesanan');
+        return;
+      }
+      final detailData = detailResult['data'];
+      final detailOrderId = detailData is Map ? detailData['id'] : null;
+      if (detailOrderId == null) {
+        _showError('Data detail pesanan tidak valid');
+        return;
+      }
+
+      // Step 3: Buat Payment (jumlah_bayar bukan jumlah)
       final paymentResult = await OrderService.createPayment({
         'order_id': orderId,
         'metode': _paymentMethod,
-        'jumlah': _total,
+        'jumlah_bayar': _total,
       });
-
-      if (!paymentResult['success']) {
+      if (paymentResult['success'] != true) {
         _showError(paymentResult['message'] ?? 'Pembayaran gagal');
         return;
       }
 
-      // Step 3: Create E-Ticket
+      // Step 4: Buat E-Ticket (pakai detail_order_id BUKAN order_id)
       final eTicketResult = await OrderService.createETicket({
-        'order_id': orderId,
+        'detail_order_id': detailOrderId,
       });
+      if (eTicketResult['success'] != true) {
+        _showError(eTicketResult['message'] ?? 'Gagal membuat e-tiket');
+        return;
+      }
 
-      // Navigate to success page
+      // Ambil kode QR (field backend: kode_qr bukan kode_tiket)
+      final eTicketData = eTicketResult['data'];
+      final kodeQr = eTicketData is Map
+          ? (eTicketData['kode_qr'] ?? orderId).toString()
+          : orderId.toString();
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -637,7 +711,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   ? _namaController.text
                   : _ownerNameController.text,
               orderId: orderId.toString(),
-              eTicketData: eTicketResult['data'],
+              eTicketData: eTicketData,
+              kodeQr: kodeQr,
             ),
           ),
         );

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pentasera_app/services/auth_service.dart';
@@ -78,11 +77,13 @@ class _RegisterPageState extends State<RegisterPage> {
       role: 'buyer', // default role saat daftar adalah buyer
     );
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (result['success']) {
+    if (result['success'] == true) {
       // Registrasi berhasil → langsung masuk berdasarkan role
-      final role = result['data']?['user']?['role'] ?? 'buyer';
+      final role = await AuthService.getUserRole() ?? 'buyer';
+      if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => RoleBasedShell(role: role)),
@@ -90,7 +91,9 @@ class _RegisterPageState extends State<RegisterPage> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text(result['message'] ?? 'Registrasi gagal'),
+            backgroundColor: Colors.red),
       );
     }
   }

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/event_service.dart';
+import 'package:pentasera_app/services/auth_service.dart';
 
 class BuatEventPage extends StatefulWidget {
   const BuatEventPage({super.key});
@@ -16,18 +17,18 @@ class _BuatEventPageState extends State<BuatEventPage> {
   bool _isLoading = false;
 
   // Step 1: Info Event
-  final _namaController = TextEditingController();
-  final _deskripsiController = TextEditingController();
-  final _lokasiController = TextEditingController();
-  final _kapasitasController = TextEditingController();
+  TextEditingController? _namaControllerValue;
+  TextEditingController? _deskripsiControllerValue;
+  TextEditingController? _lokasiControllerValue;
+  TextEditingController? _kapasitasControllerValue;
   String _kategori = 'Tari';
   DateTime? _tanggalMulai;
   DateTime? _tanggalSelesai;
 
   // Step 2: Publikasi
-  final _namaTicketController = TextEditingController();
-  final _hargaController = TextEditingController();
-  final _stokController = TextEditingController();
+  TextEditingController? _namaTicketControllerValue;
+  TextEditingController? _hargaControllerValue;
+  TextEditingController? _stokControllerValue;
   String _status = 'draft';
 
   final List<String> _categories = [
@@ -39,15 +40,37 @@ class _BuatEventPageState extends State<BuatEventPage> {
     'Festival',
   ];
 
+  TextEditingController get _namaController =>
+      _namaControllerValue ??= TextEditingController();
+  TextEditingController get _deskripsiController =>
+      _deskripsiControllerValue ??= TextEditingController();
+  TextEditingController get _lokasiController =>
+      _lokasiControllerValue ??= TextEditingController();
+  TextEditingController get _kapasitasController =>
+      _kapasitasControllerValue ??= TextEditingController();
+  TextEditingController get _namaTicketController =>
+      _namaTicketControllerValue ??= TextEditingController();
+  TextEditingController get _hargaController =>
+      _hargaControllerValue ??= TextEditingController();
+  TextEditingController get _stokController =>
+      _stokControllerValue ??= TextEditingController();
+
   @override
   void dispose() {
-    _namaController.dispose();
-    _deskripsiController.dispose();
-    _lokasiController.dispose();
-    _kapasitasController.dispose();
-    _namaTicketController.dispose();
-    _hargaController.dispose();
-    _stokController.dispose();
+    _namaControllerValue?.dispose();
+    _deskripsiControllerValue?.dispose();
+    _lokasiControllerValue?.dispose();
+    _kapasitasControllerValue?.dispose();
+    _namaTicketControllerValue?.dispose();
+    _hargaControllerValue?.dispose();
+    _stokControllerValue?.dispose();
+    _namaControllerValue = null;
+    _deskripsiControllerValue = null;
+    _lokasiControllerValue = null;
+    _kapasitasControllerValue = null;
+    _namaTicketControllerValue = null;
+    _hargaControllerValue = null;
+    _stokControllerValue = null;
     super.dispose();
   }
 
@@ -559,15 +582,27 @@ class _BuatEventPageState extends State<BuatEventPage> {
 
     setState(() => _isLoading = true);
 
+    // Get organizerId from AuthService
+    final meResult = await AuthService.getMe();
+    if (!meResult['success']) {
+      _showError('Gagal memuat data pengguna');
+      return;
+    }
+    final organizerId = meResult['data']['id'];
+
+    // Format eventDatetime as 'yyyy-MM-dd HH:mm:ss'
+    final eventDatetime = _tanggalMulai != null
+        ? DateFormat('yyyy-MM-dd HH:mm:ss').format(_tanggalMulai!)
+        : '';
+
     final eventResult = await EventService.createEvent(
-      nama: _namaController.text.trim(),
-      kategori: _kategori,
-      deskripsi: _deskripsiController.text.trim(),
-      tanggalMulai: _tanggalMulai?.toIso8601String() ?? '',
-      tanggalSelesai: _tanggalSelesai?.toIso8601String() ?? '',
+      organizerId: organizerId,
+      namaEvent: _namaController.text.trim(),
       lokasi: _lokasiController.text.trim(),
-      kapasitas: int.tryParse(_kapasitasController.text) ?? 0,
-      status: status,
+      eventDatetime: eventDatetime,
+      deskripsi: _deskripsiController.text.trim().isEmpty
+          ? null
+          : _deskripsiController.text.trim(),
     );
 
     if (!eventResult['success']) {
@@ -581,9 +616,9 @@ class _BuatEventPageState extends State<BuatEventPage> {
       final eventId = eventResult['data']['id'];
       await EventService.createTicket(
         eventId: eventId,
-        nama: _namaTicketController.text.trim(),
+        kategori: _namaTicketController.text.trim(),
         harga: int.tryParse(_hargaController.text) ?? 0,
-        stok: int.tryParse(_stokController.text) ?? 0,
+        kuota: int.tryParse(_stokController.text) ?? 0,
       );
     }
 

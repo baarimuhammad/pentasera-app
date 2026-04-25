@@ -24,12 +24,49 @@ class EventService {
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         List<dynamic> events = [];
-        if (data is List) events = data;
-        else if (data['data'] is List) events = data['data'];
+        if (data is List)
+          events = data;
+        else if (data['data'] is List)
+          events = data['data'];
         else if (data['events'] is List) events = data['events'];
         return {'success': true, 'data': events};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal memuat event'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal memuat event'
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // GET ORGANIZERS (protected)
+  static Future<Map<String, dynamic>> getOrganizers() async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/organizers'),
+        headers: headers,
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final rawList = data is List
+            ? data
+            : data is Map<String, dynamic>
+                ? (data['data'] as List?) ?? <dynamic>[]
+                : <dynamic>[];
+        final organizers = rawList
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+        return {'success': true, 'data': organizers};
+      }
+      return {
+        'success': false,
+        'message': data is Map<String, dynamic>
+            ? data['message'] ?? 'Gagal memuat organizer'
+            : 'Gagal memuat organizer'
+      };
     } catch (e) {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
@@ -46,7 +83,10 @@ class EventService {
       if (response.statusCode == 200) {
         return {'success': true, 'data': data['data'] ?? data};
       }
-      return {'success': false, 'message': data['message'] ?? 'Event tidak ditemukan'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Event tidak ditemukan'
+      };
     } catch (e) {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
@@ -62,11 +102,15 @@ class EventService {
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         List<dynamic> tickets = [];
-        if (data is List) tickets = data;
+        if (data is List)
+          tickets = data;
         else if (data['data'] is List) tickets = data['data'];
         return {'success': true, 'data': tickets};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal memuat tiket'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal memuat tiket'
+      };
     } catch (e) {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
@@ -82,11 +126,15 @@ class EventService {
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         List<dynamic> tickets = [];
-        if (data is List) tickets = data;
+        if (data is List)
+          tickets = data;
         else if (data['data'] is List) tickets = data['data'];
         return {'success': true, 'data': tickets};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal memuat tiket'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal memuat tiket'
+      };
     } catch (e) {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
@@ -94,15 +142,11 @@ class EventService {
 
   // CREATE EVENT (protected — creator only)
   static Future<Map<String, dynamic>> createEvent({
-    required String nama,
-    required String kategori,
-    required String deskripsi,
-    required String tanggalMulai,
-    required String tanggalSelesai,
+    required int organizerId,
+    required String namaEvent,
     required String lokasi,
-    required int kapasitas,
-    String status = 'draft',
-    String? foto,
+    required String eventDatetime,
+    String? deskripsi,
   }) async {
     try {
       final headers = await AuthService.authHeaders();
@@ -110,15 +154,11 @@ class EventService {
         Uri.parse('$baseUrl/events'),
         headers: headers,
         body: jsonEncode({
-          'nama': nama,
-          'kategori': kategori,
-          'deskripsi': deskripsi,
-          'tanggal_mulai': tanggalMulai,
-          'tanggal_selesai': tanggalSelesai,
+          'organizer_id': organizerId,
+          'nama_event': namaEvent,
           'lokasi': lokasi,
-          'kapasitas': kapasitas,
-          'status': status,
-          if (foto != null) 'foto': foto,
+          'event_datetime': eventDatetime,
+          if (deskripsi != null && deskripsi.isNotEmpty) 'deskripsi': deskripsi,
         }),
       );
       final data = jsonDecode(response.body);
@@ -128,14 +168,17 @@ class EventService {
         String errorMsg = 'Validasi gagal';
         if (data['errors'] != null) {
           final errors = data['errors'] as Map<String, dynamic>;
-          final firstField = errors.values.first;
-          if (firstField is List && firstField.isNotEmpty) errorMsg = firstField[0];
+          final first = errors.values.first;
+          if (first is List && first.isNotEmpty) errorMsg = first[0];
         } else if (data['message'] != null) {
           errorMsg = data['message'];
         }
         return {'success': false, 'message': errorMsg};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal membuat event'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal membuat event'
+      };
     } catch (e) {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
@@ -144,9 +187,9 @@ class EventService {
   // CREATE TICKET (protected — creator only)
   static Future<Map<String, dynamic>> createTicket({
     required int eventId,
-    required String nama,
+    required String kategori,
     required int harga,
-    required int stok,
+    required int kuota,
   }) async {
     try {
       final headers = await AuthService.authHeaders();
@@ -155,16 +198,20 @@ class EventService {
         headers: headers,
         body: jsonEncode({
           'event_id': eventId,
-          'nama': nama,
+          'kategori': kategori,
           'harga': harga,
-          'stok': stok,
+          'kuota': kuota,
+          'sisa_kuota': kuota,
         }),
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {'success': true, 'data': data['data'] ?? data};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal membuat tiket'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal membuat tiket'
+      };
     } catch (e) {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }

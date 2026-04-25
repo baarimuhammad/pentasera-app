@@ -263,11 +263,15 @@ class _LoginPageState extends State<LoginPage> {
                                       _passwordController.text,
                                     );
 
+                                    if (!mounted) return;
                                     setState(() => _isLoading = false);
 
-                                    if (result['success']) {
+                                    if (result['success'] == true) {
                                       // Login berhasil → navigasi berdasarkan role
-                                      final role = result['data']?['user']?['role'] ?? 'buyer';
+                                      final role =
+                                          await AuthService.getUserRole() ??
+                                              'buyer';
+                                      if (!mounted) return;
                                       Navigator.pushAndRemoveUntil(
                                         context,
                                         MaterialPageRoute(
@@ -279,7 +283,8 @@ class _LoginPageState extends State<LoginPage> {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         SnackBar(
-                                          content: Text(result['message']),
+                                          content: Text(result['message'] ??
+                                              'Login gagal'),
                                           backgroundColor: Colors.red,
                                         ),
                                       );

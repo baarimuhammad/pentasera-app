@@ -29,7 +29,14 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
   }
 
   Future<void> _loadDashboard() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _totalEvents = 0;
+      _totalTransaksi = 0;
+      _totalTiketTerjual = 0;
+      _totalPenjualan = 0;
+      _totalPengunjung = 0;
+    });
 
     // Verify role
     final role = await AuthService.getUserRole();
@@ -41,6 +48,7 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
             backgroundColor: Colors.red,
           ),
         );
+        setState(() => _isLoading = false);
       }
       return;
     }
@@ -50,21 +58,27 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
     // Load stats
     try {
       final eventsResult = await EventService.getEvents();
-      if (eventsResult['success'] && eventsResult['data'] is List) {
-        _totalEvents = (eventsResult['data'] as List).length;
+      if (eventsResult['success'] == true) {
+        final events = (eventsResult['data'] as List?)
+                ?.whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList() ??
+            [];
+        _totalEvents =
+            events.where((e) => e['event_status'] == 'published').length;
       }
 
       final ordersResult = await OrderService.getOrders();
-      if (ordersResult['success'] && ordersResult['data'] is List) {
-        final orders = ordersResult['data'] as List;
+      if (ordersResult['success'] == true) {
+        final orders = (ordersResult['data'] as List?)
+                ?.whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList() ??
+            [];
         _totalTransaksi = orders.length;
         for (var order in orders) {
-          final qty = order['qty'] ?? order['quantity'] ?? 1;
-          _totalTiketTerjual +=
-              (qty is int ? qty : int.tryParse(qty.toString()) ?? 1);
-          final total = order['total'] ?? order['jumlah'] ?? 0;
-          _totalPenjualan +=
-              (total is int ? total : int.tryParse(total.toString()) ?? 0);
+          final total = order['total_harga'];
+          _totalPenjualan += total is num ? total.toInt() : 0;
         }
         _totalPengunjung = _totalTiketTerjual;
       }

@@ -14,7 +14,7 @@ class EventSayaPage extends StatefulWidget {
 class _EventSayaPageState extends State<EventSayaPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<dynamic> _events = [];
+  List<Map<String, dynamic>> _events = [];
   bool _isLoading = true;
   String? _error;
 
@@ -32,31 +32,31 @@ class _EventSayaPageState extends State<EventSayaPage>
     });
 
     final result = await EventService.getEvents();
-    if (result['success'] && result['data'] is List) {
-      _events = result['data'];
+    if (result['success'] == true) {
+      _events = (result['data'] as List?)
+              ?.whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList() ??
+          [];
     } else {
-      _error = result['message'];
+      _error = result['message'] ?? 'Gagal memuat event';
     }
 
     if (mounted) setState(() => _isLoading = false);
   }
 
-  List<dynamic> _filterEvents(String status) {
+  List<Map<String, dynamic>> _filterEvents(String tab) {
     return _events.where((e) {
-      final s = (e['status'] ?? '').toString().toLowerCase();
-      switch (status) {
+      final s = (e['event_status'] ?? e['status'] ?? '')
+          .toString()
+          .toLowerCase();
+      switch (tab) {
         case 'draft':
           return s == 'draft';
         case 'aktif':
-          return s == 'aktif' ||
-              s == 'active' ||
-              s == 'published' ||
-              s == 'publikasi';
+          return s == 'published';
         case 'lalu':
-          return s == 'selesai' ||
-              s == 'finished' ||
-              s == 'lalu' ||
-              s == 'past';
+          return s == 'ended' || s == 'cancelled';
         default:
           return true;
       }
@@ -165,7 +165,7 @@ class _EventSayaPageState extends State<EventSayaPage>
   }
 
   Widget _buildEventList(
-      List<dynamic> events, bool isDark, Color textColor, Color mutedColor) {
+      List<Map<String, dynamic>> events, bool isDark, Color textColor, Color mutedColor) {
     if (events.isEmpty) {
       return Center(
         child: Column(
@@ -197,10 +197,11 @@ class _EventSayaPageState extends State<EventSayaPage>
         isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
-    final nama = event['nama'] ?? event['name'] ?? 'Event';
-    final tanggal = event['tanggal_mulai'] ?? event['tanggal'] ?? '';
-    final status = event['status'] ?? 'draft';
-    final imageUrl = event['foto'] ?? event['image'] ?? '';
+    final nama = (event['nama_event'] ?? event['nama'] ?? 'Event').toString();
+    final tanggal =
+        (event['event_datetime'] ?? event['tanggal_mulai'] ?? '').toString();
+    final status = (event['event_status'] ?? 'draft').toString();
+    final imageUrl = (event['foto'] ?? event['image'] ?? '').toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -334,15 +335,12 @@ class _EventSayaPageState extends State<EventSayaPage>
     switch (status.toLowerCase()) {
       case 'draft':
         return Colors.orange;
-      case 'aktif':
-      case 'active':
       case 'published':
-      case 'publikasi':
         return Colors.green;
-      case 'selesai':
-      case 'finished':
-      case 'lalu':
+      case 'ended':
         return Colors.grey;
+      case 'cancelled':
+        return Colors.red;
       default:
         return AppColors.primary;
     }
@@ -353,8 +351,8 @@ class _EventSayaPageState extends State<EventSayaPage>
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus Event'),
-        content:
-            Text('Yakin ingin menghapus "${event['nama'] ?? event['name']}"?'),
+        content: Text(
+            'Yakin ingin menghapus "${event['nama_event'] ?? event['nama'] ?? 'Event'}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

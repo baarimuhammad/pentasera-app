@@ -19,22 +19,38 @@ class DetailTiketPage extends StatelessWidget {
     final borderColor =
         isDark ? AppColors.borderDark : AppColors.borderLight;
 
-    final eventName = ticket['event']?['nama'] ??
-        ticket['event_name'] ??
-        ticket['nama_event'] ?? 'Event';
-    final lokasi = ticket['event']?['lokasi'] ??
-        ticket['lokasi'] ?? ticket['location'] ?? '';
-    final tanggal = ticket['event']?['tanggal_mulai'] ??
-        ticket['tanggal'] ?? ticket['date'] ?? '';
-    final kategori = ticket['event']?['kategori'] ??
-        ticket['kategori'] ?? ticket['category'] ?? '';
-    final bookingCode =
-        ticket['kode_booking'] ?? ticket['booking_code'] ?? 'N/A';
-    final holderName =
-        ticket['nama_pemegang'] ?? ticket['holder_name'] ?? ticket['nama'] ?? '';
-    final ticketType =
-        ticket['ticket']?['nama'] ?? ticket['tipe_tiket'] ?? ticket['ticket_name'] ?? '';
-    final waktu = ticket['event']?['waktu'] ?? ticket['waktu'] ?? '';
+    final detailOrder = _asMap(ticket['detail_order']);
+    final ticketInfo =
+        _asMap(ticket['ticket']) ?? _asMap(detailOrder?['ticket']);
+    final event = _asMap(ticket['event']) ?? _asMap(ticketInfo?['event']);
+
+    final eventName = _text(
+      event?['nama_event'] ?? ticket['event_name'] ?? ticket['nama_event'],
+    );
+    final lokasi =
+        _text(event?['lokasi'] ?? ticket['lokasi'] ?? ticket['location']);
+    final tanggal = _text(
+      event?['event_datetime'] ??
+          ticket['event_datetime'] ??
+          ticket['tanggal'] ??
+          ticket['date'],
+    );
+    final kategori = _text(
+      ticketInfo?['kategori'] ?? ticket['kategori'] ?? ticket['category'],
+    );
+    final kodeQr = _text(ticket['kode_qr']);
+    final qrData = kodeQr.isNotEmpty
+        ? kodeQr
+        : _text(ticket['id'] ?? ticket['detail_order_id'], fallback: '-');
+    final status = _text(ticket['status_validasi'], fallback: 'valid')
+        .toLowerCase();
+    final holderName = _text(
+      ticket['nama_pemegang'] ?? ticket['holder_name'] ?? ticket['nama'],
+    );
+    final ticketType = _text(
+      ticketInfo?['kategori'] ?? ticket['tipe_tiket'] ?? ticket['ticket_name'],
+    );
+    final waktu = _text(event?['waktu'] ?? ticket['waktu']);
 
     return Scaffold(
       backgroundColor:
@@ -108,6 +124,27 @@ class DetailTiketPage extends StatelessWidget {
                         ),
                       ),
                     ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _statusColor(status),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        status.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -116,7 +153,7 @@ class DetailTiketPage extends StatelessWidget {
 
             // Event Name
             Text(
-              eventName,
+              eventName.isNotEmpty ? eventName : 'Event',
               textAlign: TextAlign.center,
               style: GoogleFonts.playfairDisplay(
                 fontSize: 24,
@@ -146,27 +183,35 @@ class DetailTiketPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1a1510) : const Color(0xFFF8F7F5),
+                      color: isDark
+                          ? const Color(0xFF1a1510)
+                          : const Color(0xFFF8F7F5),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: QrImageView(
-                      data: bookingCode,
+                      data: qrData,
                       version: QrVersions.auto,
-                      size: 200,
-                      backgroundColor: isDark ? const Color(0xFF1a1510) : const Color(0xFFF8F7F5),
+                      size: 220,
+                      backgroundColor: isDark
+                          ? const Color(0xFF1a1510)
+                          : const Color(0xFFF8F7F5),
                       eyeStyle: QrEyeStyle(
                         eyeShape: QrEyeShape.square,
-                        color: isDark ? AppColors.textDark : const Color(0xFF221910),
+                        color: isDark
+                            ? AppColors.textDark
+                            : const Color(0xFF221910),
                       ),
                       dataModuleStyle: QrDataModuleStyle(
                         dataModuleShape: QrDataModuleShape.square,
-                        color: isDark ? AppColors.textDark : const Color(0xFF221910),
+                        color: isDark
+                            ? AppColors.textDark
+                            : const Color(0xFF221910),
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'ID: $bookingCode',
+                    'ID: ${kodeQr.isNotEmpty ? kodeQr : '-'}',
                     style: TextStyle(
                       color: mutedColor,
                       fontSize: 13,
@@ -287,6 +332,30 @@ class DetailTiketPage extends StatelessWidget {
                 fontWeight: FontWeight.bold)),
       ],
     );
+  }
+
+  Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return null;
+  }
+
+  String _text(dynamic value, {String fallback = ''}) {
+    final text = value?.toString() ?? '';
+    return text.isNotEmpty ? text : fallback;
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'valid':
+        return Colors.green;
+      case 'used':
+        return Colors.grey;
+      case 'expired':
+        return Colors.red;
+      default:
+        return AppColors.primary;
+    }
   }
 
   String _formatDate(String? dateStr) {

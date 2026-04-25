@@ -18,7 +18,7 @@ class TiketSayaPage extends StatefulWidget {
 class _TiketSayaPageState extends State<TiketSayaPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<dynamic> _tickets = [];
+  List<Map<String, dynamic>> _tickets = [];
   bool _isLoading = true;
   String? _error;
 
@@ -51,8 +51,12 @@ class _TiketSayaPageState extends State<TiketSayaPage>
     });
 
     final result = await OrderService.getETickets();
-    if (result['success']) {
-      _tickets = result['data'] is List ? result['data'] : [];
+    if (result['success'] == true) {
+      _tickets = (result['data'] as List?)
+              ?.whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList() ??
+          [];
     } else {
       _error = result['message'];
     }
@@ -132,8 +136,10 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                           _buildTicketList(
                               _tickets
                                   .where((t) =>
-                                      (t['status'] ?? 'aktif').toString().toLowerCase() == 'aktif' ||
-                                      (t['status'] ?? 'aktif').toString().toLowerCase() == 'active')
+                                      (t['status_validasi'] ?? 'valid')
+                                          .toString()
+                                          .toLowerCase() ==
+                                      'valid')
                                   .toList(),
                               isDark,
                               textColor,
@@ -142,8 +148,10 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                           _buildTicketList(
                               _tickets
                                   .where((t) =>
-                                      (t['status'] ?? '').toString().toLowerCase() != 'aktif' &&
-                                      (t['status'] ?? '').toString().toLowerCase() != 'active')
+                                      (t['status_validasi'] ?? 'valid')
+                                          .toString()
+                                          .toLowerCase() !=
+                                      'valid')
                                   .toList(),
                               isDark,
                               textColor,
@@ -157,8 +165,8 @@ class _TiketSayaPageState extends State<TiketSayaPage>
     );
   }
 
-  Widget _buildTicketList(List<dynamic> tickets, bool isDark, Color textColor,
-      Color mutedColor, {required bool isActive}) {
+  Widget _buildTicketList(List<Map<String, dynamic>> tickets, bool isDark,
+      Color textColor, Color mutedColor, {required bool isActive}) {
     if (tickets.isEmpty) {
       return Center(
         child: Column(
@@ -195,21 +203,31 @@ class _TiketSayaPageState extends State<TiketSayaPage>
     final borderColor =
         isDark ? AppColors.borderDark : AppColors.borderLight;
 
-    final eventName = ticket['event']?['nama'] ??
-        ticket['event_name'] ??
-        ticket['nama_event'] ??
-        'Event';
-    final tanggal = ticket['event']?['tanggal_mulai'] ??
-        ticket['tanggal'] ??
-        ticket['date'] ??
-        '';
-    final lokasi = ticket['event']?['lokasi'] ??
-        ticket['lokasi'] ??
-        ticket['location'] ??
-        '';
-    final bookingCode =
-        ticket['kode_booking'] ?? ticket['booking_code'] ?? 'N/A';
-    final status = ticket['status'] ?? (isActive ? 'Aktif' : 'Sudah Dipakai');
+    final event = ticket['event'] is Map ? ticket['event'] as Map : null;
+    final eventName = (event?['nama_event'] ??
+            ticket['nama_event'] ??
+            ticket['event_name'] ??
+            '')
+        .toString();
+    final tanggal = (event?['event_datetime'] ??
+            ticket['event_datetime'] ??
+            ticket['tanggal'] ??
+            ticket['date'] ??
+            '')
+        .toString();
+    final lokasi =
+        (event?['lokasi'] ?? ticket['lokasi'] ?? ticket['location'] ?? '')
+            .toString();
+    final kodeQr = (ticket['kode_qr'] ?? '').toString();
+    final shortCode = kodeQr.isEmpty
+        ? 'N/A'
+        : kodeQr.length > 8
+            ? kodeQr.substring(0, 8)
+            : kodeQr;
+    final status =
+        (ticket['status_validasi'] ?? (isActive ? 'valid' : 'used'))
+            .toString()
+            .toLowerCase();
 
     return GestureDetector(
       onTap: () {
@@ -264,9 +282,7 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isActive
-                            ? AppColors.primary
-                            : Colors.grey.withOpacity(0.8),
+                        color: _statusColor(status),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -291,7 +307,7 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    eventName,
+                        eventName.isNotEmpty ? eventName : 'Event',
                     style: GoogleFonts.playfairDisplay(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -320,7 +336,7 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                         Icon(Icons.qr_code, size: 16, color: AppColors.primary),
                         const SizedBox(width: 8),
                         Text(
-                          'KODE BOOKING',
+                          'KODE TIKET',
                           style: TextStyle(
                             color: mutedColor,
                             fontSize: 10,
@@ -330,7 +346,7 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          bookingCode,
+                          shortCode,
                           style: const TextStyle(
                             color: AppColors.primary,
                             fontSize: 13,
@@ -362,6 +378,19 @@ class _TiketSayaPageState extends State<TiketSayaPage>
         ),
       ],
     );
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'valid':
+        return Colors.green;
+      case 'used':
+        return Colors.grey;
+      case 'expired':
+        return Colors.red;
+      default:
+        return AppColors.primary;
+    }
   }
 
   String _formatDate(String? dateStr) {

@@ -31,6 +31,31 @@ class OrderService {
   }
 
   // ─────────────────────────────────────────
+  // CREATE DETAIL ORDER
+  // ─────────────────────────────────────────
+  static Future<Map<String, dynamic>> createDetailOrder(
+      Map<String, dynamic> data) async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/detail-orders'),
+        headers: headers,
+        body: jsonEncode(data),
+      );
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {'success': true, 'data': body['data'] ?? body};
+      }
+      return {
+        'success': false,
+        'message': body['message'] ?? 'Gagal membuat detail order'
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // ─────────────────────────────────────────
   // GET ORDERS
   // ─────────────────────────────────────────
   static Future<Map<String, dynamic>> getOrders() async {
