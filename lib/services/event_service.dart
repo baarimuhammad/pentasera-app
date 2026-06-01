@@ -142,11 +142,11 @@ class EventService {
 
   // CREATE EVENT (protected — creator only)
   static Future<Map<String, dynamic>> createEvent({
-    required int organizerId,
     required String namaEvent,
     required String lokasi,
     required String eventDatetime,
     String? deskripsi,
+    String status = 'draft',
   }) async {
     try {
       final headers = await AuthService.authHeaders();
@@ -154,10 +154,10 @@ class EventService {
         Uri.parse('$baseUrl/events'),
         headers: headers,
         body: jsonEncode({
-          'organizer_id': organizerId,
           'nama_event': namaEvent,
           'lokasi': lokasi,
           'event_datetime': eventDatetime,
+          'event_status': status,
           if (deskripsi != null && deskripsi.isNotEmpty) 'deskripsi': deskripsi,
         }),
       );
@@ -211,6 +211,60 @@ class EventService {
       return {
         'success': false,
         'message': data['message'] ?? 'Gagal membuat tiket'
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // UPDATE EVENT (protected — creator only)
+  static Future<Map<String, dynamic>> updateEvent({
+    required int eventId,
+    required String namaEvent,
+    required String lokasi,
+    required String eventDatetime,
+    String? deskripsi,
+  }) async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final response = await http.patch(
+        Uri.parse('$baseUrl/events/$eventId'),
+        headers: headers,
+        body: jsonEncode({
+          'nama_event': namaEvent,
+          'lokasi': lokasi,
+          'event_datetime': eventDatetime,
+          if (deskripsi != null && deskripsi.isNotEmpty) 'deskripsi': deskripsi,
+        }),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal update event'
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // DELETE EVENT (protected — creator only)
+  static Future<Map<String, dynamic>> deleteEvent(int eventId) async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/events/$eventId'),
+        headers: headers,
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal hapus event'
       };
     } catch (e) {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};

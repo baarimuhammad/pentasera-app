@@ -299,10 +299,10 @@ class _KelolAksesPageState extends State<KelolAksesPage>
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(ctx);
-                final result = await UserService.updateUser({
-                  'id': user['id'],
-                  'role': selectedRole,
-                });
+                final result = await UserService.updateUserRole(
+                  user['id'],
+                  selectedRole,
+                );
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

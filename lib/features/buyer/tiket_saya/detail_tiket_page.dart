@@ -25,7 +25,7 @@ class DetailTiketPage extends StatelessWidget {
     final event = _asMap(ticket['event']) ?? _asMap(ticketInfo?['event']);
 
     final eventName = _text(
-      event?['nama_event'] ?? ticket['event_name'] ?? ticket['nama_event'],
+      event?['nama_event'] ?? ticket['_local_event_name'] ?? ticket['event_name'] ?? ticket['nama_event'],
     );
     final lokasi =
         _text(event?['lokasi'] ?? ticket['lokasi'] ?? ticket['location']);
@@ -45,10 +45,10 @@ class DetailTiketPage extends StatelessWidget {
     final status = _text(ticket['status_validasi'], fallback: 'valid')
         .toLowerCase();
     final holderName = _text(
-      ticket['nama_pemegang'] ?? ticket['holder_name'] ?? ticket['nama'],
+      ticket['nama_pemegang'] ?? ticket['holder_name'] ?? ticket['_local_holder_name'] ?? ticket['nama'],
     );
     final ticketType = _text(
-      ticketInfo?['kategori'] ?? ticket['tipe_tiket'] ?? ticket['ticket_name'],
+      ticketInfo?['kategori'] ?? ticket['_local_ticket_name'] ?? ticket['tipe_tiket'] ?? ticket['ticket_name'],
     );
     final waktu = _text(event?['waktu'] ?? ticket['waktu']);
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/order_service.dart';
 import 'package:pentasera_app/services/auth_service.dart';
@@ -52,16 +53,50 @@ class _TiketSayaPageState extends State<TiketSayaPage>
 
     final result = await OrderService.getETickets();
     if (result['success'] == true) {
-      _tickets = (result['data'] as List?)
+      final rawTickets = (result['data'] as List?)
               ?.whereType<Map>()
               .map((item) => Map<String, dynamic>.from(item))
               .toList() ??
           [];
+
+      // Enrich tickets with locally saved event info
+      final localTicketMap = await _getLocalTicketMap();
+      for (var ticket in rawTickets) {
+        final kodeQr = (ticket['kode_qr'] ?? '').toString();
+        if (localTicketMap.containsKey(kodeQr)) {
+          final local = localTicketMap[kodeQr]!;
+          ticket['_local_event_name'] = local['eventName'];
+          ticket['_local_ticket_name'] = local['ticketName'];
+          ticket['_local_event_id'] = local['eventId'];
+          ticket['_local_holder_name'] = local['holderName'];
+        }
+      }
+
+      _tickets = rawTickets;
     } else {
       _error = result['message'];
     }
 
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  /// Read locally saved ticket info (saved during checkout)
+  Future<Map<String, Map<String, String>>> _getLocalTicketMap() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('local_tickets') ?? [];
+    final map = <String, Map<String, String>>{};
+    for (final entry in list) {
+      final parts = entry.split('|');
+      if (parts.length >= 5) {
+        map[parts[0]] = {
+          'eventName': parts[1],
+          'ticketName': parts[2],
+          'eventId': parts[3],
+          'holderName': parts[4],
+        };
+      }
+    }
+    return map;
   }
 
   @override
@@ -203,21 +238,20 @@ class _TiketSayaPageState extends State<TiketSayaPage>
     final borderColor =
         isDark ? AppColors.borderDark : AppColors.borderLight;
 
+    // Try nested data first, then local enriched data, then fallback
     final event = ticket['event'] is Map ? ticket['event'] as Map : null;
+    final detailOrder = ticket['detail_order'] is Map ? ticket['detail_order'] as Map : null;
+    final ticketInfo = ticket['ticket'] is Map ? ticket['ticket'] as Map : (detailOrder?['ticket'] is Map ? detailOrder!['ticket'] as Map : null);
+
     final eventName = (event?['nama_event'] ??
+            ticket['_local_event_name'] ??
             ticket['nama_event'] ??
-            ticket['event_name'] ??
+            'E-Ticket #${ticket['id'] ?? ''}')
+        .toString();
+    final ticketType = (ticketInfo?['kategori'] ??
+            ticket['_local_ticket_name'] ??
             '')
         .toString();
-    final tanggal = (event?['event_datetime'] ??
-            ticket['event_datetime'] ??
-            ticket['tanggal'] ??
-            ticket['date'] ??
-            '')
-        .toString();
-    final lokasi =
-        (event?['lokasi'] ?? ticket['lokasi'] ?? ticket['location'] ?? '')
-            .toString();
     final kodeQr = (ticket['kode_qr'] ?? '').toString();
     final shortCode = kodeQr.isEmpty
         ? 'N/A'
@@ -259,7 +293,7 @@ class _TiketSayaPageState extends State<TiketSayaPage>
           children: [
             // Image placeholder with status badge
             Container(
-              height: 120,
+              height: 100,
               decoration: BoxDecoration(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(16)),
@@ -274,7 +308,10 @@ class _TiketSayaPageState extends State<TiketSayaPage>
               ),
               child: Stack(
                 children: [
-                  // Status badge
+                  Center(
+                    child: Icon(Icons.confirmation_number, size: 40,
+                        color: Colors.white.withOpacity(0.3)),
+                  ),
                   Positioned(
                     top: 12,
                     right: 12,
@@ -286,7 +323,7 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        status.toString().toUpperCase(),
+                        status.toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -307,18 +344,20 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                        eventName.isNotEmpty ? eventName : 'Event',
+                    eventName,
                     style: GoogleFonts.playfairDisplay(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 12),
-                  _infoRow(Icons.calendar_today_outlined, _formatDate(tanggal),
-                      mutedColor),
-                  const SizedBox(height: 6),
-                  _infoRow(Icons.location_on_outlined, lokasi, mutedColor),
+                  if (ticketType.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(ticketType,
+                        style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  ],
 
                   const SizedBox(height: 12),
                   Container(
@@ -333,7 +372,7 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.qr_code, size: 16, color: AppColors.primary),
+                        const Icon(Icons.qr_code, size: 16, color: AppColors.primary),
                         const SizedBox(width: 8),
                         Text(
                           'KODE TIKET',
@@ -365,21 +404,6 @@ class _TiketSayaPageState extends State<TiketSayaPage>
     );
   }
 
-  Widget _infoRow(IconData icon, String text, Color mutedColor) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: mutedColor),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(text,
-              style: TextStyle(color: mutedColor, fontSize: 13),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-        ),
-      ],
-    );
-  }
-
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
       case 'valid':
@@ -393,16 +417,6 @@ class _TiketSayaPageState extends State<TiketSayaPage>
     }
   }
 
-  String _formatDate(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return '-';
-    try {
-      final date = DateTime.parse(dateStr);
-      return DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(date);
-    } catch (_) {
-      return dateStr;
-    }
-  }
-
   Widget _buildShimmer(bool isDark) {
     return Shimmer.fromColors(
       baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
@@ -411,7 +425,7 @@ class _TiketSayaPageState extends State<TiketSayaPage>
         padding: const EdgeInsets.all(20),
         itemCount: 3,
         itemBuilder: (_, __) => Container(
-          height: 220,
+          height: 200,
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             color: Colors.white,

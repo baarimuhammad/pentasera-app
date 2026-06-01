@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/event_service.dart';
-import 'package:pentasera_app/services/auth_service.dart';
+import 'package:pentasera_app/features/creator/event_saya/event_saya_page.dart';
 
 class BuatEventPage extends StatefulWidget {
   const BuatEventPage({super.key});
@@ -81,8 +81,7 @@ class _BuatEventPageState extends State<BuatEventPage> {
     final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
     final surfaceColor =
         isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final borderColor =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
       backgroundColor:
@@ -137,9 +136,8 @@ class _BuatEventPageState extends State<BuatEventPage> {
                   else ...[
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () => _handleSubmit('draft'),
+                        onPressed:
+                            _isLoading ? null : () => _handleSubmit('draft'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.primary),
@@ -156,7 +154,7 @@ class _BuatEventPageState extends State<BuatEventPage> {
                       child: ElevatedButton(
                         onPressed: _isLoading
                             ? null
-                            : () => _handleSubmit('publikasi'),
+                            : () => _handleSubmit('published'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
@@ -172,8 +170,7 @@ class _BuatEventPageState extends State<BuatEventPage> {
                                     color: Colors.white, strokeWidth: 2),
                               )
                             : const Text('Publikasikan',
-                                style:
-                                    TextStyle(fontWeight: FontWeight.bold)),
+                                style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -181,8 +178,8 @@ class _BuatEventPageState extends State<BuatEventPage> {
                     const SizedBox(width: 12),
                     TextButton(
                       onPressed: details.onStepCancel,
-                      child: Text('Kembali',
-                          style: TextStyle(color: mutedColor)),
+                      child:
+                          Text('Kembali', style: TextStyle(color: mutedColor)),
                     ),
                   ],
                 ],
@@ -193,17 +190,15 @@ class _BuatEventPageState extends State<BuatEventPage> {
             // Step 1: Informasi Event
             Step(
               title: Text('Informasi Event',
-                  style: TextStyle(
-                      color: textColor, fontWeight: FontWeight.w600)),
+                  style:
+                      TextStyle(color: textColor, fontWeight: FontWeight.w600)),
               isActive: _currentStep >= 0,
-              state: _currentStep > 0
-                  ? StepState.complete
-                  : StepState.indexed,
+              state: _currentStep > 0 ? StepState.complete : StepState.indexed,
               content: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInputField('Nama Event', _namaController,
-                      isDark, textColor, surfaceColor, borderColor),
+                  _buildInputField('Nama Event', _namaController, isDark,
+                      textColor, surfaceColor, borderColor),
                   const SizedBox(height: 16),
 
                   // Kategori dropdown
@@ -227,18 +222,17 @@ class _BuatEventPageState extends State<BuatEventPage> {
                         dropdownColor: surfaceColor,
                         style: TextStyle(color: textColor, fontSize: 14),
                         items: _categories
-                            .map((c) => DropdownMenuItem(
-                                value: c, child: Text(c)))
+                            .map((c) =>
+                                DropdownMenuItem(value: c, child: Text(c)))
                             .toList(),
-                        onChanged: (v) =>
-                            setState(() => _kategori = v!),
+                        onChanged: (v) => setState(() => _kategori = v!),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  _buildInputField('Deskripsi', _deskripsiController,
-                      isDark, textColor, surfaceColor, borderColor,
+                  _buildInputField('Deskripsi', _deskripsiController, isDark,
+                      textColor, surfaceColor, borderColor,
                       maxLines: 4),
                   const SizedBox(height: 16),
 
@@ -274,12 +268,12 @@ class _BuatEventPageState extends State<BuatEventPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  _buildInputField('Lokasi', _lokasiController,
-                      isDark, textColor, surfaceColor, borderColor),
+                  _buildInputField('Lokasi', _lokasiController, isDark,
+                      textColor, surfaceColor, borderColor),
                   const SizedBox(height: 16),
 
-                  _buildInputField('Kapasitas', _kapasitasController,
-                      isDark, textColor, surfaceColor, borderColor,
+                  _buildInputField('Kapasitas', _kapasitasController, isDark,
+                      textColor, surfaceColor, borderColor,
                       type: TextInputType.number),
                   const SizedBox(height: 16),
 
@@ -308,8 +302,7 @@ class _BuatEventPageState extends State<BuatEventPage> {
                             size: 32),
                         const SizedBox(height: 8),
                         Text('Tap untuk upload foto',
-                            style: TextStyle(
-                                color: mutedColor, fontSize: 12)),
+                            style: TextStyle(color: mutedColor, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -320,8 +313,8 @@ class _BuatEventPageState extends State<BuatEventPage> {
             // Step 2: Publikasi
             Step(
               title: Text('Publikasi Event',
-                  style: TextStyle(
-                      color: textColor, fontWeight: FontWeight.w600)),
+                  style:
+                      TextStyle(color: textColor, fontWeight: FontWeight.w600)),
               isActive: _currentStep >= 1,
               content: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,8 +326,8 @@ class _BuatEventPageState extends State<BuatEventPage> {
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: AppColors.primary.withOpacity(0.1)),
+                      border:
+                          Border.all(color: AppColors.primary.withOpacity(0.1)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,8 +354,7 @@ class _BuatEventPageState extends State<BuatEventPage> {
                         if (_tanggalMulai != null)
                           Text(
                             DateFormat('dd MMM yyyy').format(_tanggalMulai!),
-                            style: TextStyle(
-                                color: mutedColor, fontSize: 12),
+                            style: TextStyle(color: mutedColor, fontSize: 12),
                           ),
                       ],
                     ),
@@ -376,23 +368,21 @@ class _BuatEventPageState extends State<BuatEventPage> {
                           fontSize: 15,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
-                  _buildInputField('Nama Tiket', _namaTicketController,
-                      isDark, textColor, surfaceColor, borderColor,
+                  _buildInputField('Nama Tiket', _namaTicketController, isDark,
+                      textColor, surfaceColor, borderColor,
                       hint: 'Contoh: VIP, Regular, dll'),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildInputField(
-                            'Harga (Rp)', _hargaController,
+                        child: _buildInputField('Harga (Rp)', _hargaController,
                             isDark, textColor, surfaceColor, borderColor,
                             type: TextInputType.number),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _buildInputField(
-                            'Stok', _stokController,
-                            isDark, textColor, surfaceColor, borderColor,
+                        child: _buildInputField('Stok', _stokController, isDark,
+                            textColor, surfaceColor, borderColor,
                             type: TextInputType.number),
                       ),
                     ],
@@ -411,8 +401,8 @@ class _BuatEventPageState extends State<BuatEventPage> {
                       _statusChip('draft', 'Draft', isDark, textColor,
                           surfaceColor, borderColor),
                       const SizedBox(width: 12),
-                      _statusChip('publikasi', 'Publikasi', isDark,
-                          textColor, surfaceColor, borderColor),
+                      _statusChip('published', 'Publikasi', isDark, textColor,
+                          surfaceColor, borderColor),
                     ],
                   ),
                 ],
@@ -440,9 +430,7 @@ class _BuatEventPageState extends State<BuatEventPage> {
       children: [
         Text(label,
             style: TextStyle(
-                color: textColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w500)),
+                color: textColor, fontSize: 13, fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -468,8 +456,7 @@ class _BuatEventPageState extends State<BuatEventPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 2),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
           ),
         ),
@@ -492,9 +479,7 @@ class _BuatEventPageState extends State<BuatEventPage> {
       children: [
         Text(label,
             style: TextStyle(
-                color: textColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w500)),
+                color: textColor, fontSize: 13, fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
         GestureDetector(
           onTap: () async {
@@ -554,8 +539,7 @@ class _BuatEventPageState extends State<BuatEventPage> {
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : surfaceColor,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: selected ? AppColors.primary : borderColor),
+          border: Border.all(color: selected ? AppColors.primary : borderColor),
         ),
         child: Text(
           label,
@@ -582,66 +566,79 @@ class _BuatEventPageState extends State<BuatEventPage> {
 
     setState(() => _isLoading = true);
 
-    // Get organizerId from AuthService
-    final meResult = await AuthService.getMe();
-    if (!meResult['success']) {
-      _showError('Gagal memuat data pengguna');
-      return;
-    }
-    final organizerId = meResult['data']['id'];
-
     // Format eventDatetime as 'yyyy-MM-dd HH:mm:ss'
     final eventDatetime = _tanggalMulai != null
         ? DateFormat('yyyy-MM-dd HH:mm:ss').format(_tanggalMulai!)
         : '';
 
     final eventResult = await EventService.createEvent(
-      organizerId: organizerId,
       namaEvent: _namaController.text.trim(),
       lokasi: _lokasiController.text.trim(),
       eventDatetime: eventDatetime,
       deskripsi: _deskripsiController.text.trim().isEmpty
           ? null
           : _deskripsiController.text.trim(),
+      status: status,
     );
 
     if (!eventResult['success']) {
-      _showError(eventResult['message'] ?? 'Gagal membuat event');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Error: ${eventResult['message'] ?? 'Gagal membuat event'}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      setState(() => _isLoading = false);
       return;
     }
 
     // Create ticket if publishing
-    if (status == 'publikasi' &&
-        _namaTicketController.text.trim().isNotEmpty) {
+    if (status == 'published' && _namaTicketController.text.trim().isNotEmpty) {
       final eventId = eventResult['data']['id'];
-      await EventService.createTicket(
+      final ticketResult = await EventService.createTicket(
         eventId: eventId,
         kategori: _namaTicketController.text.trim(),
         harga: int.tryParse(_hargaController.text) ?? 0,
         kuota: int.tryParse(_stokController.text) ?? 0,
       );
+
+      if (!ticketResult['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Error tiket: ${ticketResult['message'] ?? 'Gagal membuat tiket'}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
     }
 
     if (mounted) {
-      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(status == 'draft'
               ? 'Event tersimpan sebagai draft'
               : 'Event berhasil dipublikasikan!'),
           backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
         ),
       );
-      Navigator.pop(context);
-    }
-  }
 
-  void _showError(String msg) {
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.red),
-      );
+      // Delay sebelum navigate
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const EventSayaPage()),
+          (route) => false,
+        );
+      }
     }
   }
 }

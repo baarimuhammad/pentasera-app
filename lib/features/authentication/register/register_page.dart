@@ -20,7 +20,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   @override
   void dispose() {
@@ -59,6 +60,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   // ← Fungsi utama untuk daftar
   Future<void> _handleRegister() async {
+    if (_isLoading) return;
+
     final error = _validate();
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -81,6 +84,19 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = false);
 
     if (result['success'] == true) {
+      if (result['requiresLogin'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result['message'] ?? 'Registrasi berhasil. Silakan login.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+        return;
+      }
+
       // Registrasi berhasil → langsung masuk berdasarkan role
       final role = await AuthService.getUserRole() ?? 'buyer';
       if (!mounted) return;
@@ -104,9 +120,12 @@ class _RegisterPageState extends State<RegisterPage> {
     final primaryColor = const Color(0xFFC25E26);
     final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFDFBF7);
     final surfaceColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? const Color(0xFFEDEDED) : const Color(0xFF1A1A1A);
-    final mutedColor = isDark ? const Color(0xFFA1A1A1) : const Color(0xFF666666);
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5);
+    final textColor =
+        isDark ? const Color(0xFFEDEDED) : const Color(0xFF1A1A1A);
+    final mutedColor =
+        isDark ? const Color(0xFFA1A1A1) : const Color(0xFF666666);
+    final borderColor =
+        isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -122,11 +141,11 @@ class _RegisterPageState extends State<RegisterPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(
-                          'assets/images/logo_pentasera.png',
-                          width: 48,
-                          height: 48,
-                          fit: BoxFit.contain,
-                        ),
+                      'assets/images/logo_pentasera.png',
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.contain,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'PENTASERA',
@@ -142,7 +161,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 8),
                 Text(
                   'Bergabung dan rasakan keajaiban budaya nusantara',
-                  style: TextStyle(color: mutedColor, fontSize: 14, fontFamily: GoogleFonts.poppins().fontFamily),
+                  style: TextStyle(
+                      color: mutedColor,
+                      fontSize: 14,
+                      fontFamily: GoogleFonts.poppins().fontFamily),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
@@ -259,7 +281,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                 style: TextStyle(
                                     color: mutedColor,
                                     fontSize: 12,
-                                    fontFamily: GoogleFonts.poppins().fontFamily),
+                                    fontFamily:
+                                        GoogleFonts.poppins().fontFamily),
                                 children: [
                                   const TextSpan(text: 'Saya menyetujui '),
                                   TextSpan(
@@ -364,7 +387,8 @@ class _RegisterPageState extends State<RegisterPage> {
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 10, fontFamily: 'Poppins'),
+            hintStyle: const TextStyle(
+                color: Colors.grey, fontSize: 10, fontFamily: 'Poppins'),
             prefixIcon: Icon(icon, color: Colors.grey, size: 20),
             filled: true,
             fillColor: bgColor,
@@ -412,7 +436,8 @@ class _RegisterPageState extends State<RegisterPage> {
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 10, fontFamily: 'Poppins'),
+            hintStyle: const TextStyle(
+                color: Colors.grey, fontSize: 10, fontFamily: 'Poppins'),
             prefixIcon:
                 const Icon(Icons.lock_outline, color: Colors.grey, size: 20),
             suffixIcon: IconButton(

@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/auth_service.dart';
+import 'package:pentasera_app/services/user_service.dart';
 import 'package:pentasera_app/features/authentication/login/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pentasera_app/core/app_router.dart';
@@ -18,6 +21,7 @@ class _ProfilPageState extends State<ProfilPage>
   late TabController _tabController;
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
+  bool _isSavingProfile = false;
 
   @override
   void initState() {
@@ -33,9 +37,12 @@ class _ProfilPageState extends State<ProfilPage>
     final savedEmail = await AuthService.getUserEmail() ?? '';
     final savedRole = await AuthService.getUserRole() ?? '';
     final savedCreatedAt = await AuthService.getUserCreatedAt() ?? '';
+    final savedUserId = await AuthService.getUserId();
 
     if (result['success'] == true && result['data'] is Map) {
       _userData = Map<String, dynamic>.from(result['data'] as Map);
+      _userData!['id'] =
+          _resolveProfileId(_userData, ['id', 'user_id']) ?? savedUserId;
       _userData!['nama'] = _resolveProfileField(
               _userData, ['nama', 'name', 'full_name', 'username']) ??
           savedNama;
@@ -54,6 +61,7 @@ class _ProfilPageState extends State<ProfilPage>
           savedCreatedAt;
     } else {
       _userData = {
+        'id': savedUserId,
         'nama': savedNama,
         'email': savedEmail,
         'role': savedRole,
@@ -80,6 +88,12 @@ class _ProfilPageState extends State<ProfilPage>
       }
     }
     return null;
+  }
+
+  int? _resolveProfileId(Map<String, dynamic>? data, List<String> keys) {
+    final value = _resolveProfileField(data, keys);
+    if (value == null) return null;
+    return int.tryParse(value);
   }
 
   @override
@@ -248,6 +262,26 @@ class _ProfilPageState extends State<ProfilPage>
                                 borderColor,
                                 textColor,
                                 mutedColor),
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton.icon(
+                                onPressed: _isSavingProfile
+                                    ? null
+                                    : _showEditProfileSheet,
+                                icon: const Icon(Icons.edit_outlined, size: 18),
+                                label: const Text('Ubah Nama & Email'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 0,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -306,23 +340,80 @@ class _ProfilPageState extends State<ProfilPage>
                                     value: _userData?['role'] == 'creator',
                                     onChanged: (val) async {
                                       final newRole = val ? 'creator' : 'buyer';
-                                      // Update shared preferences
-                                      final prefs =
-                                          await SharedPreferences.getInstance();
-                                      await prefs.setString(
-                                          'user_role', newRole);
-                                      // Update local data
-                                      setState(() {
-                                        _userData?['role'] = newRole;
-                                      });
-                                      // Navigate to new shell with new role
-                                      if (mounted) {
-                                        Navigator.pushAndRemoveUntil(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) => RoleBasedShell(
-                                                  role: newRole)),
-                                          (route) => false,
+                                      // Tampilkan loading
+                                      setState(() => _isLoading = true);
+                                      try {
+                                        // Step 1: Ambil user id dari /api/me
+                                        final meResult = await AuthService.getMe();
+                                        if (!meResult['success']) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Gagal memuat data pengguna'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          setState(() => _isLoading = false);
+                                          return;
+                                        }
+                                        final userId = meResult['data']['id'];
+
+                                        // Step 2: Hit PATCH /api/users/{id} untuk update role di database
+                                        final headers = await AuthService.authHeaders();
+                                        final response = await http.patch(
+                                          Uri.parse('${AuthService.baseUrl}/users/$userId'),
+                                          headers: headers,
+                                          body: jsonEncode({'role': newRole}),
+                                        );
+
+                                        if (response.statusCode != 200) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Gagal update role, coba lagi'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          setState(() => _isLoading = false);
+                                          return;
+                                        }
+
+                                        // Step 3: Update SharedPreferences
+                                        final prefs = await SharedPreferences.getInstance();
+                                        await prefs.setString('user_role', newRole);
+
+                                        // Step 4: Update local state
+                                        setState(() {
+                                          _userData?['role'] = newRole;
+                                          _isLoading = false;
+                                        });
+
+                                        // Step 5: Navigate ke RoleBasedShell yang sesuai
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                val ? 'Mode Organizer aktif!' : 'Kembali ke mode Pembeli',
+                                              ),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                          await Future.delayed(const Duration(milliseconds: 800));
+                                          if (mounted) {
+                                            Navigator.pushAndRemoveUntil(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => RoleBasedShell(role: newRole),
+                                              ),
+                                              (_) => false,
+                                            );
+                                          }
+                                        }
+                                      } catch (e) {
+                                        setState(() => _isLoading = false);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Error: $e'),
+                                            backgroundColor: Colors.red,
+                                          ),
                                         );
                                       }
                                     },
@@ -422,8 +513,27 @@ class _ProfilPageState extends State<ProfilPage>
 
   String _formatJoinedDate(dynamic value) {
     final text = value?.toString() ?? '';
-    if (text.length >= 10) return text.substring(0, 10);
-    return text.isNotEmpty ? text : '-';
+    if (text.trim().isEmpty) return '-';
+
+    final date = DateTime.tryParse(text);
+    if (date == null) return text;
+
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    final localDate = date.toLocal();
+    return '${localDate.day} ${monthNames[localDate.month - 1]} ${localDate.year}';
   }
 
   Widget _infoCard(
@@ -475,6 +585,38 @@ class _ProfilPageState extends State<ProfilPage>
     );
   }
 
+  Future<void> _showEditProfileSheet() async {
+    if (_isSavingProfile) return;
+
+    setState(() => _isSavingProfile = true);
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditProfileSheet(userData: _userData),
+    );
+
+    if (!mounted) return;
+    setState(() => _isSavingProfile = false);
+
+    if (result == null) return;
+    setState(() => _userData = result);
+    _showProfileMessage(
+      'Informasi dasar berhasil diperbarui',
+      isError: false,
+    );
+  }
+
+  void _showProfileMessage(String message, {bool isError = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
   Future<void> _handleLogout() async {
     await AuthService.logout();
     if (mounted) {
@@ -484,5 +626,277 @@ class _ProfilPageState extends State<ProfilPage>
         (_) => false,
       );
     }
+  }
+}
+
+class _EditProfileSheet extends StatefulWidget {
+  final Map<String, dynamic>? userData;
+
+  const _EditProfileSheet({required this.userData});
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  late final TextEditingController _namaController;
+  late final TextEditingController _emailController;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _namaController = TextEditingController(
+        text: (widget.userData?['nama'] ?? '').toString());
+    _emailController = TextEditingController(
+        text: (widget.userData?['email'] ?? '').toString());
+  }
+
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final surfaceColor =
+        isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Edit Informasi Dasar',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed:
+                        _isSaving ? null : () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.close, color: mutedColor),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _editProfileField(
+                label: 'Nama Lengkap',
+                controller: _namaController,
+                icon: Icons.person_outline,
+                enabled: !_isSaving,
+                textColor: textColor,
+                borderColor: borderColor,
+                fillColor: isDark
+                    ? AppColors.backgroundDark
+                    : AppColors.backgroundLight,
+                keyboardType: TextInputType.name,
+              ),
+              const SizedBox(height: 14),
+              _editProfileField(
+                label: 'Email',
+                controller: _emailController,
+                icon: Icons.email_outlined,
+                enabled: !_isSaving,
+                textColor: textColor,
+                borderColor: borderColor,
+                fillColor: isDark
+                    ? AppColors.backgroundDark
+                    : AppColors.backgroundLight,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _saveProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Simpan Perubahan',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _editProfileField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required bool enabled,
+    required Color textColor,
+    required Color borderColor,
+    required Color fillColor,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          enabled: enabled,
+          keyboardType: keyboardType,
+          style: TextStyle(color: textColor, fontSize: 14),
+          decoration: InputDecoration(
+            prefixIcon: Icon(
+              icon,
+              color: AppColors.primary,
+              size: 20,
+            ),
+            filled: true,
+            fillColor: fillColor,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _saveProfile() async {
+    final nama = _namaController.text.trim();
+    final email = _emailController.text.trim();
+
+    if (nama.isEmpty) {
+      _showMessage('Nama lengkap tidak boleh kosong');
+      return;
+    }
+    if (email.isEmpty || !email.contains('@')) {
+      _showMessage('Format email tidak valid');
+      return;
+    }
+
+    final userId = _resolveProfileId(widget.userData, ['id', 'user_id']) ??
+        await AuthService.getUserId();
+    if (userId == null || userId <= 0) {
+      _showMessage('ID user tidak ditemukan. Silakan login ulang.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    final result = await UserService.updateProfile(
+      userId: userId,
+      nama: nama,
+      email: email,
+    );
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (result['success'] == true) {
+      // Build updated user with nama and email from request (API might not return full user object)
+      final updatedUser = {
+        ...(widget.userData ?? <String, dynamic>{}),
+        'id': userId,
+        'nama': nama,
+        'email': email,
+      };
+
+      // Cache the updated user data
+      await AuthService.cacheUserData(updatedUser);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profil berhasil diperbarui'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pop(updatedUser);
+    } else {
+      _showMessage(result['message'] ?? 'Gagal memperbarui profil');
+    }
+  }
+
+  int? _resolveProfileId(Map<String, dynamic>? data, List<String> keys) {
+    if (data == null) return null;
+    for (final key in keys) {
+      final value = data[key];
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      final parsed = int.tryParse(value?.toString() ?? '');
+      if (parsed != null) return parsed;
+    }
+    return null;
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 }

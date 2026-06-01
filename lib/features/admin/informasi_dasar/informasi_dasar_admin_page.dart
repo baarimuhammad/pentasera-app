@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/auth_service.dart';
+import 'package:pentasera_app/services/user_service.dart';
 
 class InformasiDasarAdminPage extends StatefulWidget {
   const InformasiDasarAdminPage({super.key});
@@ -16,6 +17,7 @@ class _InformasiDasarAdminPageState extends State<InformasiDasarAdminPage> {
   final _emailController = TextEditingController();
   bool _isLoading = true;
   bool _isSaving = false;
+  int? _userId;
 
   @override
   void initState() {
@@ -26,7 +28,10 @@ class _InformasiDasarAdminPageState extends State<InformasiDasarAdminPage> {
   Future<void> _loadProfile() async {
     setState(() => _isLoading = true);
     final result = await AuthService.getMe();
+    _userId = await AuthService.getUserId();
     if (result['success']) {
+      final data = Map<String, dynamic>.from(result['data'] as Map);
+      _userId = _asInt(data['id'] ?? data['user_id']) ?? _userId;
       _namaController.text = result['data']['nama'] ?? '';
       _emailController.text = result['data']['email'] ?? '';
     } else {
@@ -228,18 +233,56 @@ class _InformasiDasarAdminPageState extends State<InformasiDasarAdminPage> {
     );
   }
 
+  int? _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
   Future<void> _handleSave() async {
-    setState(() => _isSaving = true);
-    // Simulate save — in real app this would hit an update endpoint
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
-      setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profil berhasil disimpan'),
-          backgroundColor: Colors.green,
-        ),
-      );
+    final nama = _namaController.text.trim();
+    final email = _emailController.text.trim();
+
+    if (nama.isEmpty) {
+      _showMessage('Nama tidak boleh kosong');
+      return;
     }
+    if (email.isEmpty || !email.contains('@')) {
+      _showMessage('Format email tidak valid');
+      return;
+    }
+
+    final userId = _userId ?? await AuthService.getUserId();
+    if (userId == null || userId <= 0) {
+      _showMessage('ID user tidak ditemukan. Silakan login ulang.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    final result = await UserService.updateProfile(
+      userId: userId,
+      nama: nama,
+      email: email,
+    );
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (result['success'] == true) {
+      _userId = userId;
+      _showMessage('Profil berhasil disimpan', isError: false);
+    } else {
+      _showMessage(result['message'] ?? 'Gagal memperbarui profil');
+    }
+  }
+
+  void _showMessage(String message, {bool isError = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
   }
 }

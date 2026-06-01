@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/core/app_router.dart';
-import 'package:pentasera_app/features/buyer/tiket_saya/tiket_saya_page.dart';
 import 'package:pentasera_app/services/auth_service.dart';
 
 class ETicketPage extends StatelessWidget {
@@ -199,12 +198,16 @@ class ETicketPage extends StatelessWidget {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const TiketSayaPage()),
-                      (_) => false,
-                    );
+                  onPressed: () async {
+                    final role = await AuthService.getUserRole() ?? 'buyer';
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => RoleBasedShell(role: role)),
+                        (_) => false,
+                      );
+                    }
                   },
                   icon: const Icon(Icons.confirmation_number_outlined),
                   label: const Text('Lihat Tiket Saya',

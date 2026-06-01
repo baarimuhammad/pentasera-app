@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/auth_service.dart';
 import 'package:pentasera_app/services/order_service.dart';
@@ -34,14 +35,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _phoneController = TextEditingController();
   final _ownerNameController = TextEditingController();
   final _ownerEmailController = TextEditingController();
-  final _voucherController = TextEditingController();
 
   bool _sameAsBooker = true;
-  String _paymentMethod = 'ewallet';
+  String _paymentMethod = 'transfer_bank';
   bool _isLoading = false;
   bool _isLoadingProfile = true;
-  String? _voucherApplied;
-  int _discount = 0;
 
   final _formatter =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
@@ -61,16 +59,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _emailController.text =
           data is Map ? (data['email'] ?? '').toString() : '';
     } else {
-      // Fallback from shared prefs
       _namaController.text = await AuthService.getUserNama() ?? '';
       _emailController.text = await AuthService.getUserEmail() ?? '';
     }
     if (mounted) setState(() => _isLoadingProfile = false);
   }
 
-  int get _subtotal => widget.price * widget.qty;
-  int get _serviceFee => 15000;
-  int get _total => _subtotal + _serviceFee - _discount;
+  int get _total => widget.price * widget.qty;
 
   @override
   void dispose() {
@@ -79,7 +74,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _phoneController.dispose();
     _ownerNameController.dispose();
     _ownerEmailController.dispose();
-    _voucherController.dispose();
     super.dispose();
   }
 
@@ -102,7 +96,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Pentasera',
           style: TextStyle(
             color: AppColors.primary,
@@ -229,112 +223,29 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   ],
                   const SizedBox(height: 24),
 
-                  // Metode Pembayaran
+                  // Metode Pembayaran — mapped to backend values
                   _sectionTitle('Metode Pembayaran', textColor),
                   const SizedBox(height: 12),
                   _buildPaymentOption(
-                      'ewallet',
-                      'E-Wallet',
-                      'GoPay, OVO, Dana, ShopeePay',
-                      Icons.account_balance_wallet,
-                      isDark,
-                      textColor,
-                      surfaceColor,
-                      borderColor),
-                  const SizedBox(height: 8),
-                  _buildPaymentOption(
-                      'virtual_account',
-                      'Virtual Account',
+                      'transfer_bank',
+                      'Transfer Bank',
                       'BCA, Mandiri, BNI, BRI',
                       Icons.account_balance,
-                      isDark,
-                      textColor,
-                      surfaceColor,
-                      borderColor),
+                      isDark, textColor, surfaceColor, borderColor),
+                  const SizedBox(height: 8),
+                  _buildPaymentOption(
+                      'gopay',
+                      'E-Wallet (GoPay)',
+                      'GoPay, OVO, Dana, ShopeePay',
+                      Icons.account_balance_wallet,
+                      isDark, textColor, surfaceColor, borderColor),
                   const SizedBox(height: 8),
                   _buildPaymentOption(
                       'qris',
                       'QRIS',
                       'Scan QR dari aplikasi apapun',
                       Icons.qr_code,
-                      isDark,
-                      textColor,
-                      surfaceColor,
-                      borderColor),
-                  const SizedBox(height: 8),
-                  _buildPaymentOption(
-                      'bank_transfer',
-                      'Transfer Bank',
-                      'Transfer manual ke rekening tujuan',
-                      Icons.credit_card,
-                      isDark,
-                      textColor,
-                      surfaceColor,
-                      borderColor),
-                  const SizedBox(height: 24),
-
-                  // Voucher
-                  _sectionTitle('Voucher', textColor),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _voucherController,
-                          style: TextStyle(color: textColor, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Punya kode voucher?',
-                            hintStyle:
-                                TextStyle(color: mutedColor, fontSize: 13),
-                            filled: true,
-                            fillColor: surfaceColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: borderColor),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: borderColor),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: AppColors.primary, width: 2),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (_voucherController.text.isNotEmpty) {
-                              setState(() {
-                                _voucherApplied = _voucherController.text;
-                                _discount = 50000;
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Voucher berhasil digunakan!'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: const Text('Apply'),
-                        ),
-                      ),
-                    ],
-                  ),
+                      isDark, textColor, surfaceColor, borderColor),
                   const SizedBox(height: 24),
 
                   // Ringkasan Pesanan
@@ -350,8 +261,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     child: Column(
                       children: [
                         _summaryRow(
-                            '${widget.ticketName}',
-                            _formatter.format(_subtotal),
+                            widget.ticketName,
+                            _formatter.format(_total),
                             textColor,
                             mutedColor),
                         _summaryRow(
@@ -360,21 +271,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             mutedColor,
                             mutedColor,
                             isSubtext: true),
-                        const SizedBox(height: 8),
-                        _summaryRow(
-                            'Biaya Layanan',
-                            _formatter.format(_serviceFee),
-                            textColor,
-                            mutedColor),
-                        if (_voucherApplied != null) ...[
-                          const SizedBox(height: 8),
-                          _summaryRow(
-                            'Diskon (${_voucherApplied})',
-                            '-${_formatter.format(_discount)}',
-                            Colors.green,
-                            mutedColor,
-                          ),
-                        ],
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 12),
                           child: Divider(),
@@ -621,20 +517,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
     setState(() => _isLoading = true);
 
     try {
-      // Ambil user_id dari /me
-      final meResult = await AuthService.getMe();
-      if (meResult['success'] != true) {
-        _showError('Gagal memuat data pengguna');
-        return;
-      }
-      final meData = meResult['data'];
-      final userId = meData is Map ? meData['id'] : null;
-      if (userId == null) {
-        _showError('Data pengguna tidak valid');
-        return;
+      // Get user_id from SharedPreferences (saved during login)
+      int? userId = await AuthService.getUserId();
+      if (userId == null || userId == 0) {
+        // Fallback: fetch from /me
+        final meResult = await AuthService.getMe();
+        if (meResult['success'] != true) {
+          _showError('Gagal memuat data pengguna');
+          return;
+        }
+        final meData = meResult['data'];
+        userId = meData is Map ? meData['id'] : null;
+        if (userId == null) {
+          _showError('Data pengguna tidak valid');
+          return;
+        }
       }
 
-      // Step 1: Buat Order (hanya user_id + total_harga)
+      // Step 1: Buat Order — per claude.md: {user_id, total_harga}
       final orderResult = await OrderService.createOrder({
         'user_id': userId,
         'total_harga': _total,
@@ -656,12 +556,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
 
-      // Step 2: Buat Detail Order (ticket_id + jumlah + subtotal)
+      // Step 2: Buat Detail Order — per claude.md: {order_id, ticket_id, jumlah}
+      // subtotal dihitung otomatis oleh backend (harga × jumlah)
       final detailResult = await OrderService.createDetailOrder({
         'order_id': orderId,
         'ticket_id': ticketId,
         'jumlah': widget.qty,
-        'subtotal': widget.price * widget.qty,
       });
       if (detailResult['success'] != true) {
         _showError(detailResult['message'] ?? 'Gagal membuat detail pesanan');
@@ -674,7 +574,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
 
-      // Step 3: Buat Payment (jumlah_bayar bukan jumlah)
+      // Step 3: Buat Payment — per claude.md: {order_id, metode, jumlah_bayar}
       final paymentResult = await OrderService.createPayment({
         'order_id': orderId,
         'metode': _paymentMethod,
@@ -685,7 +585,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
 
-      // Step 4: Buat E-Ticket (pakai detail_order_id BUKAN order_id)
+      // Step 4: Buat E-Ticket — per claude.md: {detail_order_id}
       final eTicketResult = await OrderService.createETicket({
         'detail_order_id': detailOrderId,
       });
@@ -694,11 +594,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
 
-      // Ambil kode QR (field backend: kode_qr bukan kode_tiket)
+      // Get kode_qr from response
       final eTicketData = eTicketResult['data'];
       final kodeQr = eTicketData is Map
           ? (eTicketData['kode_qr'] ?? orderId).toString()
           : orderId.toString();
+
+      // Save ticket info locally for Tiket Saya page
+      await _saveTicketLocally(
+        detailOrderId: detailOrderId,
+        kodeQr: kodeQr,
+        eTicketData: eTicketData,
+      );
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -722,6 +629,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  /// Save ticket info locally so Tiket Saya can display event details
+  Future<void> _saveTicketLocally({
+    required dynamic detailOrderId,
+    required String kodeQr,
+    required dynamic eTicketData,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existing = prefs.getStringList('local_tickets') ?? [];
+      // Store as simple format: kodeQr|eventName|ticketName|eventId|holderName
+      final holderName = _sameAsBooker
+          ? _namaController.text
+          : _ownerNameController.text;
+      existing.add('$kodeQr|${widget.eventName}|${widget.ticketName}|${widget.eventId}|$holderName');
+      await prefs.setStringList('local_tickets', existing);
+    } catch (_) {}
   }
 
   void _showError(String message) {

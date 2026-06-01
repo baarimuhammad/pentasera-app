@@ -338,26 +338,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Social Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                                child: _buildSocialButton(
-                                    'Google',
-                                    'assets/images/google_logo.png',
-                                    surfaceColor,
-                                    textColor,
-                                    isDark)),
-                            const SizedBox(width: 16),
-                            Expanded(
-                                child: _buildSocialButton(
-                                    'Facebook',
-                                    'assets/images/facebook_logo.png',
-                                    surfaceColor,
-                                    textColor,
-                                    isDark)),
-                          ],
-                        ),
                         const SizedBox(height: 32),
 
                         // Register Link

@@ -51,17 +51,27 @@ class _DetailEventPageState extends State<DetailEventPage>
     final eventResult = await EventService.getEventById(eventId);
     if (eventResult['success'] == true && eventResult['data'] is Map) {
       _event = Map<String, dynamic>.from(eventResult['data'] as Map);
+      // Backend GET /api/events/{id} returns tickets[] in response
+      if (_event!['tickets'] is List) {
+        _tickets = (_event!['tickets'] as List)
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      }
     } else {
       _error = eventResult['message'] ?? 'Event tidak ditemukan';
     }
 
-    final ticketResult = await EventService.getTicketsByEvent(eventId);
-    if (ticketResult['success'] == true) {
-      _tickets = (ticketResult['data'] as List?)
-              ?.whereType<Map>()
-              .map((item) => Map<String, dynamic>.from(item))
-              .toList() ??
-          [];
+    // Fallback: fetch tickets separately if not included in event detail
+    if (_tickets.isEmpty) {
+      final ticketResult = await EventService.getTicketsByEvent(eventId);
+      if (ticketResult['success'] == true) {
+        _tickets = (ticketResult['data'] as List?)
+                ?.whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList() ??
+            [];
+      }
     }
 
     if (mounted) setState(() => _isLoading = false);
@@ -85,22 +95,18 @@ class _DetailEventPageState extends State<DetailEventPage>
     if (_error != null) return _buildError();
 
     final event = _event ?? {};
-    final imageUrl =
-        (event['foto'] ?? event['image'] ?? event['gambar'] ?? '').toString();
-    final eventName = (event['nama_event'] ?? event['nama'] ?? 'Event')
-        .toString();
-    final tanggal =
-        (event['event_datetime'] ?? event['tanggal_mulai'] ?? '').toString();
-    final lokasi = (event['lokasi'] ?? event['location'] ?? '').toString();
+    // Field names matched to backend per claude.md
+    final imageUrl = (event['image_url'] ?? '').toString();
+    final eventName = (event['nama_event'] ?? 'Event').toString();
+    final tanggal = (event['event_datetime'] ?? '').toString();
+    final lokasi = (event['lokasi'] ?? '').toString();
     final organizerData =
         event['organizer'] is Map ? event['organizer'] as Map : null;
     final organizer =
-        (organizerData?['nama'] ?? event['organizer_name'] ?? '').toString();
-    final deskripsi =
-        (event['deskripsi'] ?? event['description'] ?? '').toString();
-    final kategori = (event['kategori'] ?? event['category'] ?? '').toString();
-    final tanggalSelesai = (event['tanggal_selesai'] ?? '').toString();
-    final kapasitas = event['kapasitas'] ?? event['capacity'] ?? '';
+        (organizerData?['organizer_name'] ?? event['organizer_name'] ?? '').toString();
+    final deskripsi = (event['deskripsi'] ?? '').toString();
+    final kategori = (event['kategori_event'] ?? '').toString();
+    final eventStatus = (event['event_status'] ?? '').toString();
 
     return Scaffold(
       body: CustomScrollView(
@@ -290,29 +296,20 @@ class _DetailEventPageState extends State<DetailEventPage>
                         _buildDetailCard('Kategori', kategori, Icons.category,
                             surfaceColor, textColor, mutedColor, isDark),
                         _buildDetailCard(
-                            'Tanggal Mulai',
+                            'Tanggal & Waktu',
                             _formatDate(tanggal),
                             Icons.event,
                             surfaceColor,
                             textColor,
                             mutedColor,
                             isDark),
-                        if (tanggalSelesai.isNotEmpty)
-                          _buildDetailCard(
-                              'Tanggal Selesai',
-                              _formatDate(tanggalSelesai),
-                              Icons.event_available,
-                              surfaceColor,
-                              textColor,
-                              mutedColor,
-                              isDark),
                         _buildDetailCard('Lokasi', lokasi, Icons.place,
                             surfaceColor, textColor, mutedColor, isDark),
-                        if (kapasitas.toString().isNotEmpty)
+                        if (eventStatus.isNotEmpty)
                           _buildDetailCard(
-                              'Kapasitas',
-                              '$kapasitas orang',
-                              Icons.people,
+                              'Status',
+                              eventStatus.toUpperCase(),
+                              Icons.info_outline,
                               surfaceColor,
                               textColor,
                               mutedColor,

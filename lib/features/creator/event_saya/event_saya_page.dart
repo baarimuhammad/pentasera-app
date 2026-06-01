@@ -47,9 +47,8 @@ class _EventSayaPageState extends State<EventSayaPage>
 
   List<Map<String, dynamic>> _filterEvents(String tab) {
     return _events.where((e) {
-      final s = (e['event_status'] ?? e['status'] ?? '')
-          .toString()
-          .toLowerCase();
+      final s =
+          (e['event_status'] ?? e['status'] ?? '').toString().toLowerCase();
       switch (tab) {
         case 'draft':
           return s == 'draft';
@@ -164,8 +163,8 @@ class _EventSayaPageState extends State<EventSayaPage>
     );
   }
 
-  Widget _buildEventList(
-      List<Map<String, dynamic>> events, bool isDark, Color textColor, Color mutedColor) {
+  Widget _buildEventList(List<Map<String, dynamic>> events, bool isDark,
+      Color textColor, Color mutedColor) {
     if (events.isEmpty) {
       return Center(
         child: Column(
@@ -287,10 +286,11 @@ class _EventSayaPageState extends State<EventSayaPage>
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {
+                        onPressed: () async {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content: Text('Fitur edit segera hadir!')),
+                                content: Text(
+                                    'Fitur edit event masih dikembangkan')),
                           );
                         },
                         icon: const Icon(Icons.edit, size: 16),
@@ -359,15 +359,28 @@ class _EventSayaPageState extends State<EventSayaPage>
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Event berhasil dihapus'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              _loadEvents();
+              final result = await EventService.deleteEvent(event['id']);
+
+              if (mounted) {
+                if (result['success']) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Event berhasil dihapus'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  _loadEvents();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${result['message']}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red, foregroundColor: Colors.white),
