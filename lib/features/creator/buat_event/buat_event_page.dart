@@ -571,6 +571,7 @@ class _BuatEventPageState extends State<BuatEventPage> {
         ? DateFormat('yyyy-MM-dd HH:mm:ss').format(_tanggalMulai!)
         : '';
 
+    debugPrint('[BuatEvent] Creating event: nama=${_namaController.text} status=$status');
     final eventResult = await EventService.createEvent(
       namaEvent: _namaController.text.trim(),
       lokasi: _lokasiController.text.trim(),
@@ -580,6 +581,8 @@ class _BuatEventPageState extends State<BuatEventPage> {
           : _deskripsiController.text.trim(),
       status: status,
     );
+
+    debugPrint('[BuatEvent] createEvent result: ${eventResult}');
 
     if (!eventResult['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -594,28 +597,51 @@ class _BuatEventPageState extends State<BuatEventPage> {
       return;
     }
 
-    // Create ticket if publishing
-    if (status == 'published' && _namaTicketController.text.trim().isNotEmpty) {
-      final eventId = eventResult['data']['id'];
-      final ticketResult = await EventService.createTicket(
-        eventId: eventId,
-        kategori: _namaTicketController.text.trim(),
-        harga: int.tryParse(_hargaController.text) ?? 0,
-        kuota: int.tryParse(_stokController.text) ?? 0,
-      );
+    // Create ticket if ticket info is filled (for both draft and published)
+    if (_namaTicketController.text.trim().isNotEmpty) {
+      final eventData = eventResult['data'];
+      final eventId = eventData is Map ? eventData['id'] : null;
+      debugPrint('[BuatEvent] eventId=$eventId from data=$eventData');
 
-      if (!ticketResult['success']) {
+      if (eventId == null) {
+        debugPrint('[BuatEvent] WARNING: eventId is null, cannot create ticket');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Error tiket: ${ticketResult['message'] ?? 'Gagal membuat tiket'}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+          const SnackBar(
+            content: Text('Event berhasil dibuat tapi gagal membuat tiket (ID tidak ditemukan)'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
           ),
         );
-        setState(() => _isLoading = false);
-        return;
+      } else {
+        final parsedEventId = int.tryParse(eventId.toString()) ?? 0;
+        final harga = int.tryParse(_hargaController.text) ?? 0;
+        final kuota = int.tryParse(_stokController.text) ?? 0;
+
+        debugPrint('[BuatEvent] Creating ticket: eventId=$parsedEventId kategori=${_namaTicketController.text} harga=$harga kuota=$kuota');
+        final ticketResult = await EventService.createTicket(
+          eventId: parsedEventId,
+          kategori: _namaTicketController.text.trim(),
+          harga: harga,
+          kuota: kuota,
+        );
+
+        debugPrint('[BuatEvent] createTicket result: $ticketResult');
+
+        if (!ticketResult['success']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Error tiket: ${ticketResult['message'] ?? 'Gagal membuat tiket'}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          setState(() => _isLoading = false);
+          return;
+        }
       }
+    } else {
+      debugPrint('[BuatEvent] Skipping ticket creation - no ticket name provided');
     }
 
     if (mounted) {

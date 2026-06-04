@@ -91,15 +91,29 @@ class EventService {
         Uri.parse('$baseUrl/events/$id'),
         headers: {'Accept': 'application/json'},
       );
+      debugPrint('[getEventById] statusCode: ${response.statusCode}');
+      debugPrint('[getEventById] body: ${response.body}');
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data['data'] ?? data};
+        final eventData = data['data'] ?? data;
+        // Log ticket data specifically
+        if (eventData is Map) {
+          final tickets = eventData['tickets'];
+          debugPrint('[getEventById] has tickets? ${tickets != null} | tickets type: ${tickets.runtimeType}');
+          if (tickets is List) {
+            for (var t in tickets) {
+              debugPrint('[getEventById] ticket: ${t}');
+            }
+          }
+        }
+        return {'success': true, 'data': eventData};
       }
       return {
         'success': false,
         'message': data['message'] ?? 'Event tidak ditemukan'
       };
     } catch (e) {
+      debugPrint('[getEventById] ERROR: $e');
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
   }
@@ -107,23 +121,64 @@ class EventService {
   // GET TICKETS BY EVENT (public)
   static Future<Map<String, dynamic>> getTicketsByEvent(int eventId) async {
     try {
+      // Primary: query param approach
       final response = await http.get(
         Uri.parse('$baseUrl/tickets?event_id=$eventId'),
         headers: {'Accept': 'application/json'},
       );
+      debugPrint('[getTicketsByEvent] URL: $baseUrl/tickets?event_id=$eventId');
+      debugPrint('[getTicketsByEvent] statusCode: ${response.statusCode}');
+      debugPrint('[getTicketsByEvent] body: ${response.body}');
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         List<dynamic> tickets = [];
         if (data is List)
           tickets = data;
         else if (data['data'] is List) tickets = data['data'];
+        // Filter by event_id in case backend ignores query param
+        if (tickets.isNotEmpty) {
+          tickets = tickets.where((t) {
+            if (t is Map) {
+              final tEventId = t['event_id'];
+              return tEventId != null &&
+                  tEventId.toString() == eventId.toString();
+            }
+            return true;
+          }).toList();
+        }
+        debugPrint('[getTicketsByEvent] parsed tickets: ${tickets.length}');
+        for (var t in tickets) {
+          debugPrint('[getTicketsByEvent] ticket: id=${t['id']} harga=${t['harga']} kategori=${t['kategori']}');
+        }
+        if (tickets.isNotEmpty) {
+          return {'success': true, 'data': tickets};
+        }
+      }
+
+      // Fallback: nested route approach
+      debugPrint('[getTicketsByEvent] Trying fallback: $baseUrl/events/$eventId/tickets');
+      final fallbackResponse = await http.get(
+        Uri.parse('$baseUrl/events/$eventId/tickets'),
+        headers: {'Accept': 'application/json'},
+      );
+      debugPrint('[getTicketsByEvent] fallback statusCode: ${fallbackResponse.statusCode}');
+      if (fallbackResponse.statusCode == 200) {
+        final fallbackData = jsonDecode(fallbackResponse.body);
+        List<dynamic> tickets = [];
+        if (fallbackData is List)
+          tickets = fallbackData;
+        else if (fallbackData is Map && fallbackData['data'] is List)
+          tickets = fallbackData['data'];
+        debugPrint('[getTicketsByEvent] fallback tickets: ${tickets.length}');
         return {'success': true, 'data': tickets};
       }
+
       return {
-        'success': false,
-        'message': data['message'] ?? 'Gagal memuat tiket'
+        'success': true,
+        'data': <dynamic>[],
       };
     } catch (e) {
+      debugPrint('[getTicketsByEvent] ERROR: $e');
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
   }

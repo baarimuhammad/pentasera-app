@@ -35,6 +35,15 @@ class _DetailEventPageState extends State<DetailEventPage>
     _loadData();
   }
 
+  /// Safely parse a price value from the API (handles int, double, String)
+  int _parsePrice(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    final str = value.toString().replaceAll(RegExp(r'[^0-9.]'), '');
+    return int.tryParse(str) ?? double.tryParse(str)?.toInt() ?? 0;
+  }
+
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
@@ -49,14 +58,22 @@ class _DetailEventPageState extends State<DetailEventPage>
     }
 
     final eventResult = await EventService.getEventById(eventId);
+    debugPrint('[DetailEvent] eventResult success=${eventResult['success']}');
     if (eventResult['success'] == true && eventResult['data'] is Map) {
       _event = Map<String, dynamic>.from(eventResult['data'] as Map);
+      debugPrint('[DetailEvent] event keys: ${_event!.keys.toList()}');
       // Backend GET /api/events/{id} returns tickets[] in response
       if (_event!['tickets'] is List) {
         _tickets = (_event!['tickets'] as List)
             .whereType<Map>()
             .map((item) => Map<String, dynamic>.from(item))
             .toList();
+        debugPrint('[DetailEvent] tickets from event detail: ${_tickets.length}');
+        for (var t in _tickets) {
+          debugPrint('[DetailEvent] ticket: id=${t['id']} harga=${t['harga']} price=${t['price']} kategori=${t['kategori']}');
+        }
+      } else {
+        debugPrint('[DetailEvent] No tickets[] in event response');
       }
     } else {
       _error = eventResult['message'] ?? 'Event tidak ditemukan';
@@ -64,6 +81,7 @@ class _DetailEventPageState extends State<DetailEventPage>
 
     // Fallback: fetch tickets separately if not included in event detail
     if (_tickets.isEmpty) {
+      debugPrint('[DetailEvent] Fetching tickets separately for eventId=$eventId');
       final ticketResult = await EventService.getTicketsByEvent(eventId);
       if (ticketResult['success'] == true) {
         _tickets = (ticketResult['data'] as List?)
@@ -71,6 +89,10 @@ class _DetailEventPageState extends State<DetailEventPage>
                 .map((item) => Map<String, dynamic>.from(item))
                 .toList() ??
             [];
+        debugPrint('[DetailEvent] separate fetch tickets: ${_tickets.length}');
+        for (var t in _tickets) {
+          debugPrint('[DetailEvent] ticket: id=${t['id']} harga=${t['harga']} price=${t['price']} kategori=${t['kategori']}');
+        }
       }
     }
 
@@ -475,7 +497,7 @@ class _DetailEventPageState extends State<DetailEventPage>
   Widget _buildTicketCard(Map<String, dynamic> ticket, Color surface,
       Color text, Color muted, bool isDark) {
     final nama = ticket['kategori'] ?? ticket['nama'] ?? 'Tiket';
-    final harga = ticket['harga'] ?? ticket['price'] ?? 0;
+    final hargaParsed = _parsePrice(ticket['harga'] ?? ticket['price']);
     final sisaKuota = ticket['sisa_kuota'] ?? ticket['stok'] ?? 0;
     final sisaKuotaInt = int.tryParse(sisaKuota.toString()) ?? 0;
     final desc = (ticket['deskripsi'] ?? ticket['description'] ?? '').toString();
@@ -544,8 +566,7 @@ class _DetailEventPageState extends State<DetailEventPage>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                formatter
-                    .format(int.tryParse(harga.toString()) ?? 0),
+                formatter.format(hargaParsed),
                 style: TextStyle(
                   color: text,
                   fontSize: 22,
@@ -621,8 +642,24 @@ class _DetailEventPageState extends State<DetailEventPage>
 
     // Navigate to checkout with first selected ticket
     final entry = selectedEntry.first;
-    final ticket = _tickets.firstWhere((t) => t['id'] == entry.key);
-    final price = ticket['harga'] ?? ticket['price'] ?? 0;
+    // Find ticket - compare as string to avoid type mismatch
+    final ticket = _tickets.firstWhere(
+      (t) => t['id'].toString() == entry.key.toString(),
+      orElse: () => <String, dynamic>{},
+    );
+    if (ticket.isEmpty) {
+      debugPrint('[DetailEvent] ERROR: ticket not found for id=${entry.key}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data tiket tidak ditemukan'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    final price = _parsePrice(ticket['harga'] ?? ticket['price']);
+    debugPrint('[DetailEvent] → Checkout: ticketId=${entry.key} price=$price qty=${entry.value} eventName=$eventName');
+    debugPrint('[DetailEvent] → Raw ticket data: $ticket');
 
     if (mounted) {
       Navigator.push(
@@ -633,7 +670,7 @@ class _DetailEventPageState extends State<DetailEventPage>
             ticketId: entry.key,
             ticketName:
                 (ticket['kategori'] ?? ticket['nama'] ?? 'Tiket').toString(),
-            price: int.tryParse(price.toString()) ?? 0,
+            price: price,
             qty: entry.value,
             eventName: eventName,
           ),

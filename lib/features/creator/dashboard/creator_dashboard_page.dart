@@ -28,6 +28,15 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
     _loadDashboard();
   }
 
+  /// Safely parse a number from the API (handles int, double, String)
+  int _parseNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    final str = value.toString().replaceAll(RegExp(r'[^0-9.]'), '');
+    return int.tryParse(str) ?? double.tryParse(str)?.toInt() ?? 0;
+  }
+
   Future<void> _loadDashboard() async {
     setState(() {
       _isLoading = true;
@@ -57,18 +66,25 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
 
     // Load stats
     try {
-      final eventsResult = await EventService.getEvents();
+      // 1. Count creator's own published events
+      final eventsResult = await EventService.getMyEvents();
+      debugPrint('[Dashboard] getMyEvents success=${eventsResult['success']}');
       if (eventsResult['success'] == true) {
         final events = (eventsResult['data'] as List?)
                 ?.whereType<Map>()
                 .map((item) => Map<String, dynamic>.from(item))
                 .toList() ??
             [];
-        _totalEvents =
-            events.where((e) => e['event_status'] == 'published').length;
+        _totalEvents = events.where((e) {
+          final status = (e['event_status'] ?? e['status'] ?? '').toString().toLowerCase();
+          return status == 'published';
+        }).length;
+        debugPrint('[Dashboard] totalEvents (published): $_totalEvents');
       }
 
+      // 2. Count orders and revenue
       final ordersResult = await OrderService.getOrders();
+      debugPrint('[Dashboard] getOrders success=${ordersResult['success']}');
       if (ordersResult['success'] == true) {
         final orders = (ordersResult['data'] as List?)
                 ?.whereType<Map>()
@@ -76,13 +92,39 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
                 .toList() ??
             [];
         _totalTransaksi = orders.length;
+        debugPrint('[Dashboard] totalTransaksi: $_totalTransaksi');
+
+        // Sum revenue from all orders (handle string/int/double)
         for (var order in orders) {
-          final total = order['total_harga'];
-          _totalPenjualan += total is num ? total.toInt() : 0;
+          final total = _parseNum(order['total_harga']);
+          _totalPenjualan += total;
+          debugPrint('[Dashboard] order id=${order['id']} total_harga=${order['total_harga']} parsed=$total');
         }
-        _totalPengunjung = _totalTiketTerjual;
+        debugPrint('[Dashboard] totalPenjualan: $_totalPenjualan');
       }
-    } catch (_) {}
+
+      // 3. Count tickets sold from detail orders
+      final detailResult = await OrderService.getDetailOrders();
+      debugPrint('[Dashboard] getDetailOrders success=${detailResult['success']}');
+      if (detailResult['success'] == true) {
+        final details = (detailResult['data'] as List?)
+                ?.whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList() ??
+            [];
+        for (var detail in details) {
+          final jumlah = _parseNum(detail['jumlah']);
+          _totalTiketTerjual += jumlah;
+          debugPrint('[Dashboard] detail_order id=${detail['id']} jumlah=${detail['jumlah']} parsed=$jumlah');
+        }
+        debugPrint('[Dashboard] totalTiketTerjual: $_totalTiketTerjual');
+      }
+
+      // 4. Pengunjung = tiket terjual
+      _totalPengunjung = _totalTiketTerjual;
+    } catch (e) {
+      debugPrint('[Dashboard] ERROR: $e');
+    }
 
     if (mounted) setState(() => _isLoading = false);
   }

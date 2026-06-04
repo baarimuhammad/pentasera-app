@@ -166,6 +166,37 @@ class OrderService {
   }
 
   // ─────────────────────────────────────────
+  // GET DETAIL ORDERS
+  // ─────────────────────────────────────────
+  static Future<Map<String, dynamic>> getDetailOrders() async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/detail-orders'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        List<dynamic> details = [];
+        if (data is List) {
+          details = data;
+        } else if (data is Map) {
+          final inner = data['data'];
+          if (inner is List) {
+            details = inner;
+          } else if (inner is Map && inner['data'] is List) {
+            details = inner['data'] as List;
+          }
+        }
+        return {'success': true, 'data': details};
+      }
+      return {'success': false, 'message': 'Gagal memuat detail pesanan'};
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // ─────────────────────────────────────────
   // GET E-TICKETS (tiket saya)
   // ─────────────────────────────────────────
   static Future<Map<String, dynamic>> getETickets() async {
