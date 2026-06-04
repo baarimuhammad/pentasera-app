@@ -21,21 +21,33 @@ class EventService {
         Uri.parse('$baseUrl/events'),
         headers: {'Accept': 'application/json'},
       );
+      debugPrint('[getEvents] statusCode: ${response.statusCode}');
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         List<dynamic> events = [];
-        if (data is List)
+        if (data is List) {
           events = data;
-        else if (data['data'] is List)
-          events = data['data'];
-        else if (data['events'] is List) events = data['events'];
+        } else if (data is Map) {
+          final inner = data['data'];
+          if (inner is List) {
+            // Non-paginated: { data: [...] }
+            events = inner;
+          } else if (inner is Map && inner['data'] is List) {
+            // Laravel paginated: { data: { current_page, data: [...], total } }
+            events = inner['data'] as List;
+          } else if (data['events'] is List) {
+            events = data['events'] as List;
+          }
+        }
+        debugPrint('[getEvents] parsed events count: ${events.length}');
         return {'success': true, 'data': events};
       }
       return {
         'success': false,
-        'message': data['message'] ?? 'Gagal memuat event'
+        'message': data is Map ? (data['message'] ?? 'Gagal memuat event') : 'Gagal memuat event'
       };
     } catch (e) {
+      debugPrint('[getEvents] ERROR: $e');
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
   }
@@ -140,6 +152,86 @@ class EventService {
     }
   }
 
+  // GET MY EVENTS (protected — creator's own events)
+  static Future<Map<String, dynamic>> getMyEvents() async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/my-events'),
+        headers: headers,
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        List<dynamic> events = [];
+        if (data is List)
+          events = data;
+        else if (data['data'] is List)
+          events = data['data'];
+        else if (data['events'] is List) events = data['events'];
+        return {'success': true, 'data': events};
+      }
+      return {
+        'success': false,
+        'message': data is Map ? (data['message'] ?? 'Gagal memuat event saya') : 'Gagal memuat event saya'
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // GET OR CREATE ORGANIZER ID for the current logged-in user
+  // Fetches the organizer list, finds the one owned by this user.
+  // If none exists, auto-creates a default organizer.
+  static Future<int?> getOrCreateOrganizerId() async {
+    try {
+      final userId = await AuthService.getUserId();
+      final userName = await AuthService.getUserNama() ?? 'Organizer';
+      final headers = await AuthService.authHeaders();
+
+      // Try to fetch existing organizers owned by this user
+      final listRes = await http.get(
+        Uri.parse('$baseUrl/organizers'),
+        headers: headers,
+      );
+      if (listRes.statusCode == 200) {
+        final listData = jsonDecode(listRes.body);
+        final rawList = listData is List
+            ? listData
+            : listData is Map
+                ? (listData['data'] as List?) ?? <dynamic>[]
+                : <dynamic>[];
+        // Find organizer belonging to current user
+        for (final item in rawList) {
+          if (item is Map) {
+            final ownerId = item['user_id'] ?? item['owner_id'];
+            if (ownerId != null && ownerId.toString() == userId.toString()) {
+              final id = item['id'];
+              if (id != null) return int.tryParse(id.toString());
+            }
+          }
+        }
+        // No existing organizer → auto-create one
+        final createRes = await http.post(
+          Uri.parse('$baseUrl/organizers'),
+          headers: headers,
+          body: jsonEncode({
+            'nama_organizer': userName,
+            'deskripsi': '',
+          }),
+        );
+        if (createRes.statusCode == 200 || createRes.statusCode == 201) {
+          final created = jsonDecode(createRes.body);
+          final createdData = created['data'] ?? created;
+          final newId = createdData['id'];
+          if (newId != null) return int.tryParse(newId.toString());
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // CREATE EVENT (protected — creator only)
   static Future<Map<String, dynamic>> createEvent({
     required String namaEvent,
@@ -147,8 +239,19 @@ class EventService {
     required String eventDatetime,
     String? deskripsi,
     String status = 'draft',
+    int? organizerId,
   }) async {
     try {
+      // Resolve organizer_id — required by backend
+      final resolvedOrganizerId = organizerId ?? await getOrCreateOrganizerId();
+      if (resolvedOrganizerId == null) {
+        return {
+          'success': false,
+          'message':
+              'Gagal mendapatkan data organizer. Pastikan akun Anda sudah terdaftar sebagai kreator.'
+        };
+      }
+
       final headers = await AuthService.authHeaders();
       final response = await http.post(
         Uri.parse('$baseUrl/events'),
@@ -158,6 +261,7 @@ class EventService {
           'lokasi': lokasi,
           'event_datetime': eventDatetime,
           'event_status': status,
+          'organizer_id': resolvedOrganizerId,
           if (deskripsi != null && deskripsi.isNotEmpty) 'deskripsi': deskripsi,
         }),
       );

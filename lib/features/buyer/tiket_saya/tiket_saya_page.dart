@@ -34,11 +34,10 @@ class _TiketSayaPageState extends State<TiketSayaPage>
     final token = await AuthService.getToken();
     if (token == null || token.isEmpty) {
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-          (_) => false,
-        );
+        setState(() {
+          _isLoading = false;
+          _error = 'login_required'; // flag khusus, bukan redirect langsung
+        });
       }
       return;
     }
@@ -148,8 +147,8 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
-                labelStyle: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600),
+                labelStyle:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                 dividerColor: Colors.transparent,
                 tabs: const [
                   Tab(text: 'Aktif'),
@@ -201,7 +200,8 @@ class _TiketSayaPageState extends State<TiketSayaPage>
   }
 
   Widget _buildTicketList(List<Map<String, dynamic>> tickets, bool isDark,
-      Color textColor, Color mutedColor, {required bool isActive}) {
+      Color textColor, Color mutedColor,
+      {required bool isActive}) {
     if (tickets.isEmpty) {
       return Center(
         child: Column(
@@ -225,8 +225,8 @@ class _TiketSayaPageState extends State<TiketSayaPage>
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: tickets.length,
-        itemBuilder: (context, index) =>
-            _buildTicketCard(tickets[index], isDark, textColor, mutedColor, isActive),
+        itemBuilder: (context, index) => _buildTicketCard(
+            tickets[index], isDark, textColor, mutedColor, isActive),
       ),
     );
   }
@@ -235,33 +235,35 @@ class _TiketSayaPageState extends State<TiketSayaPage>
       Color textColor, Color mutedColor, bool isActive) {
     final surfaceColor =
         isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final borderColor =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     // Try nested data first, then local enriched data, then fallback
     final event = ticket['event'] is Map ? ticket['event'] as Map : null;
-    final detailOrder = ticket['detail_order'] is Map ? ticket['detail_order'] as Map : null;
-    final ticketInfo = ticket['ticket'] is Map ? ticket['ticket'] as Map : (detailOrder?['ticket'] is Map ? detailOrder!['ticket'] as Map : null);
+    final detailOrder =
+        ticket['detail_order'] is Map ? ticket['detail_order'] as Map : null;
+    final ticketInfo = ticket['ticket'] is Map
+        ? ticket['ticket'] as Map
+        : (detailOrder?['ticket'] is Map
+            ? detailOrder!['ticket'] as Map
+            : null);
 
     final eventName = (event?['nama_event'] ??
             ticket['_local_event_name'] ??
             ticket['nama_event'] ??
             'E-Ticket #${ticket['id'] ?? ''}')
         .toString();
-    final ticketType = (ticketInfo?['kategori'] ??
-            ticket['_local_ticket_name'] ??
-            '')
-        .toString();
+    final ticketType =
+        (ticketInfo?['kategori'] ?? ticket['_local_ticket_name'] ?? '')
+            .toString();
     final kodeQr = (ticket['kode_qr'] ?? '').toString();
     final shortCode = kodeQr.isEmpty
         ? 'N/A'
         : kodeQr.length > 8
             ? kodeQr.substring(0, 8)
             : kodeQr;
-    final status =
-        (ticket['status_validasi'] ?? (isActive ? 'valid' : 'used'))
-            .toString()
-            .toLowerCase();
+    final status = (ticket['status_validasi'] ?? (isActive ? 'valid' : 'used'))
+        .toString()
+        .toLowerCase();
 
     return GestureDetector(
       onTap: () {
@@ -309,8 +311,8 @@ class _TiketSayaPageState extends State<TiketSayaPage>
               child: Stack(
                 children: [
                   Center(
-                    child: Icon(Icons.confirmation_number, size: 40,
-                        color: Colors.white.withOpacity(0.3)),
+                    child: Icon(Icons.confirmation_number,
+                        size: 40, color: Colors.white.withOpacity(0.3)),
                   ),
                   Positioned(
                     top: 12,
@@ -356,23 +358,26 @@ class _TiketSayaPageState extends State<TiketSayaPage>
                   if (ticketType.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(ticketType,
-                        style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
+                        style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
                   ],
-
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: AppColors.primary.withOpacity(0.1)),
+                      border:
+                          Border.all(color: AppColors.primary.withOpacity(0.1)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.qr_code, size: 16, color: AppColors.primary),
+                        const Icon(Icons.qr_code,
+                            size: 16, color: AppColors.primary),
                         const SizedBox(width: 8),
                         Text(
                           'KODE TIKET',
@@ -437,6 +442,35 @@ class _TiketSayaPageState extends State<TiketSayaPage>
   }
 
   Widget _buildErrorState(Color mutedColor) {
+    if (_error == 'login_required') {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 48, color: mutedColor),
+            const SizedBox(height: 12),
+            Text('Silakan login untuk melihat tiket',
+                style: TextStyle(color: mutedColor)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (_) => false,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Login'),
+            ),
+          ],
+        ),
+      );
+    }
+    // Error biasa
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -449,8 +483,9 @@ class _TiketSayaPageState extends State<TiketSayaPage>
           ElevatedButton(
             onPressed: _loadTickets,
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Coba Lagi'),
           ),
         ],

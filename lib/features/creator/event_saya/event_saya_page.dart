@@ -31,7 +31,7 @@ class _EventSayaPageState extends State<EventSayaPage>
       _error = null;
     });
 
-    final result = await EventService.getEvents();
+    final result = await EventService.getMyEvents();
     if (result['success'] == true) {
       _events = (result['data'] as List?)
               ?.whereType<Map>()

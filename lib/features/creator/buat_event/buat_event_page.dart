@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/event_service.dart';
-import 'package:pentasera_app/features/creator/event_saya/event_saya_page.dart';
+import 'package:pentasera_app/core/app_router.dart';
 
 class BuatEventPage extends StatefulWidget {
   const BuatEventPage({super.key});
@@ -635,7 +635,8 @@ class _BuatEventPageState extends State<BuatEventPage> {
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const EventSayaPage()),
+          MaterialPageRoute(
+              builder: (_) => const RoleBasedShell(role: 'creator')),
           (route) => false,
         );
       }

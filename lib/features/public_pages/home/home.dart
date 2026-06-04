@@ -30,12 +30,22 @@ class _HomePageState extends State<HomePage> {
     setState(() => _isLoading = true);
     final result = await EventService.getEvents();
     if (result['success'] == true) {
-      _events = (result['data'] as List?)
+      final allEvents = (result['data'] as List?)
               ?.whereType<Map>()
               .map((e) => Map<String, dynamic>.from(e))
-              .where((e) => (e['event_status'] ?? '').toString().toLowerCase() == 'published')
               .toList() ??
           [];
+      debugPrint('[HomePage] Total events from API: ${allEvents.length}');
+      for (final e in allEvents) {
+        debugPrint('[HomePage] event: ${e['nama_event']} | event_status=${e['event_status']} | status=${e['status']}');
+      }
+      _events = allEvents
+          .where((e) {
+            final s = (e['event_status'] ?? e['status'] ?? '').toString().toLowerCase();
+            return s == 'published';
+          })
+          .toList();
+      debugPrint('[HomePage] Published events: ${_events.length}');
     }
     if (mounted) setState(() => _isLoading = false);
   }

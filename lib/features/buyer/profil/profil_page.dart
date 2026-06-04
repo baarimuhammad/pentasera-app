@@ -340,45 +340,77 @@ class _ProfilPageState extends State<ProfilPage>
                                     value: _userData?['role'] == 'creator',
                                     onChanged: (val) async {
                                       final newRole = val ? 'creator' : 'buyer';
-                                      // Tampilkan loading
-                                      setState(() => _isLoading = true);
-                                      try {
-                                        // Step 1: Ambil user id dari /api/me
-                                        final meResult = await AuthService.getMe();
-                                        if (!meResult['success']) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
+
+                                      // Step 1: Ambil user id dari cache lokal
+                                      // (tidak perlu hit /api/me — sudah di-cache saat login)
+                                      final cachedId = _userData?['id'];
+                                      final userId = (cachedId is int
+                                              ? cachedId
+                                              : int.tryParse(
+                                                  cachedId?.toString() ?? '')) ??
+                                          await AuthService.getUserId();
+
+                                      // Jika userId null → kemungkinan guest / belum login
+                                      if (userId == null || userId <= 0) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
                                             const SnackBar(
-                                              content: Text('Gagal memuat data pengguna'),
+                                              content: Text(
+                                                  'Silakan login terlebih dahulu untuk mengganti mode'),
                                               backgroundColor: Colors.red,
                                             ),
                                           );
-                                          setState(() => _isLoading = false);
-                                          return;
                                         }
-                                        final userId = meResult['data']['id'];
+                                        return;
+                                      }
 
+                                      setState(() => _isLoading = true);
+                                      try {
                                         // Step 2: Hit PATCH /api/users/{id} untuk update role di database
-                                        final headers = await AuthService.authHeaders();
+                                        final headers =
+                                            await AuthService.authHeaders();
                                         final response = await http.patch(
-                                          Uri.parse('${AuthService.baseUrl}/users/$userId'),
+                                          Uri.parse(
+                                              '${AuthService.baseUrl}/users/$userId'),
                                           headers: headers,
                                           body: jsonEncode({'role': newRole}),
                                         );
 
+                                        debugPrint(
+                                            '[RoleUpdate] statusCode: ${response.statusCode}');
+                                        debugPrint(
+                                            '[RoleUpdate] body: ${response.body}');
+
                                         if (response.statusCode != 200) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Gagal update role, coba lagi'),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
+                                          // Tampilkan pesan error asli dari backend
+                                          String errMsg =
+                                              'Gagal update role, coba lagi';
+                                          try {
+                                            final errBody = jsonDecode(
+                                                response.body) as Map;
+                                            errMsg = errBody['message']
+                                                    ?.toString() ??
+                                                errMsg;
+                                          } catch (_) {}
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(errMsg),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
                                           setState(() => _isLoading = false);
                                           return;
                                         }
 
                                         // Step 3: Update SharedPreferences
-                                        final prefs = await SharedPreferences.getInstance();
-                                        await prefs.setString('user_role', newRole);
+                                        final prefs = await SharedPreferences
+                                            .getInstance();
+                                        await prefs.setString(
+                                            'user_role', newRole);
 
                                         // Step 4: Update local state
                                         setState(() {
@@ -388,20 +420,25 @@ class _ProfilPageState extends State<ProfilPage>
 
                                         // Step 5: Navigate ke RoleBasedShell yang sesuai
                                         if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
                                             SnackBar(
                                               content: Text(
-                                                val ? 'Mode Organizer aktif!' : 'Kembali ke mode Pembeli',
+                                                val
+                                                    ? 'Mode Organizer aktif!'
+                                                    : 'Kembali ke mode Pembeli',
                                               ),
                                               backgroundColor: Colors.green,
                                             ),
                                           );
-                                          await Future.delayed(const Duration(milliseconds: 800));
+                                          await Future.delayed(const Duration(
+                                              milliseconds: 800));
                                           if (mounted) {
                                             Navigator.pushAndRemoveUntil(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (_) => RoleBasedShell(role: newRole),
+                                                builder: (_) => RoleBasedShell(
+                                                    role: newRole),
                                               ),
                                               (_) => false,
                                             );
@@ -409,12 +446,15 @@ class _ProfilPageState extends State<ProfilPage>
                                         }
                                       } catch (e) {
                                         setState(() => _isLoading = false);
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Error: $e'),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text('Error: $e'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
                                       }
                                     },
                                     activeColor: AppColors.primary,

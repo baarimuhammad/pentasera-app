@@ -157,7 +157,8 @@ class AuthNotifier extends Notifier<AuthState> {
         );
       }
     } on AppException catch (e) {
-      state = AuthError(message: e.message, previousState: const Unauthenticated());
+      state =
+          AuthError(message: e.message, previousState: const Unauthenticated());
     }
   }
 
@@ -179,6 +180,17 @@ class AuthNotifier extends Notifier<AuthState> {
       // Save token and user data
       await _storage.saveToken(result.token);
       await _storage.saveUserData(result.user.toJson());
+
+      // Verify token was actually saved before proceeding
+      final savedToken = await _storage.getToken();
+
+      if (savedToken == null || savedToken.isEmpty) {
+        state = AuthError(
+          message: 'Login gagal: tidak dapat menyimpan sesi. Coba lagi.',
+          previousState: const Unauthenticated(),
+        );
+        return;
+      }
 
       state = Authenticated(user: result.user, token: result.token);
     } on EmailNotVerifiedException catch (e) {

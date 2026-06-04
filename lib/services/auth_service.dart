@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -51,10 +52,19 @@ class AuthService {
 
       final data = _decodeJsonObject(response.body);
 
+      debugPrint('[AuthService.login] statusCode: ${response.statusCode}');
+      debugPrint('[AuthService.login] body: ${response.body}');
+      debugPrint('[AuthService.login] token: ${data['token']}');
+      debugPrint('[AuthService.login] user: ${data['user']}');
+
       if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
-        final token = data['token'];
-        final user = _extractUser(data);
+        final nested = data['data'] is Map
+            ? Map<String, dynamic>.from(data['data'] as Map)
+            : null;
+        final token = data['token'] ?? nested?['token'];
+        final user = _extractUser(data) ??
+            (nested != null ? _extractUser(nested) : null);
 
         if (token is String && token.isNotEmpty) {
           await prefs.setString('token', token);
@@ -286,6 +296,20 @@ class AuthService {
   // HELPERS
   // ─────────────────────────────────────────
   static Future<String?> getToken() async {
+    // Try to get from SecureStorage first (used by Riverpod authProvider)
+    try {
+      const storage = FlutterSecureStorage(
+        aOptions: AndroidOptions(encryptedSharedPreferences: true),
+      );
+      final secureToken = await storage.read(key: 'auth_token');
+      if (secureToken != null && secureToken.isNotEmpty) {
+        return secureToken;
+      }
+    } catch (_) {
+      // Fall through to SharedPreferences
+    }
+
+    // Fallback to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('token');
   }
