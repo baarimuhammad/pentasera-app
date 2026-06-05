@@ -197,13 +197,33 @@ class OrderService {
   }
 
   // ─────────────────────────────────────────
-  // GET E-TICKETS (tiket saya)
+  // GET E-TICKETS (all — unfiltered, for admin use)
   // ─────────────────────────────────────────
   static Future<Map<String, dynamic>> getETickets() async {
     try {
       final headers = await AuthService.authHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/e-tickets'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'data': data['data'] ?? data};
+      }
+      return {'success': false, 'message': 'Gagal memuat tiket'};
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // ─────────────────────────────────────────
+  // GET MY TICKETS (filtered by logged-in user)
+  // ─────────────────────────────────────────
+  static Future<Map<String, dynamic>> getMyTickets() async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/my-tickets'),
         headers: headers,
       );
       if (response.statusCode == 200) {

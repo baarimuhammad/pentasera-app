@@ -50,7 +50,7 @@ class _TiketSayaPageState extends State<TiketSayaPage>
       _error = null;
     });
 
-    final result = await OrderService.getETickets();
+    final result = await OrderService.getMyTickets();
     if (result['success'] == true) {
       final rawTickets = (result['data'] as List?)
               ?.whereType<Map>()

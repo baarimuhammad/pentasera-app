@@ -251,11 +251,14 @@ class EventService {
       final userName = await AuthService.getUserNama() ?? 'Organizer';
       final headers = await AuthService.authHeaders();
 
+      debugPrint('[getOrCreateOrganizerId] userId=$userId, userName=$userName');
+
       // Try to fetch existing organizers owned by this user
       final listRes = await http.get(
         Uri.parse('$baseUrl/organizers'),
         headers: headers,
       );
+      debugPrint('[getOrCreateOrganizerId] GET /organizers statusCode=${listRes.statusCode}');
       if (listRes.statusCode == 200) {
         final listData = jsonDecode(listRes.body);
         final rawList = listData is List
@@ -263,25 +266,33 @@ class EventService {
             : listData is Map
                 ? (listData['data'] as List?) ?? <dynamic>[]
                 : <dynamic>[];
+        debugPrint('[getOrCreateOrganizerId] total organizers: ${rawList.length}');
         // Find organizer belonging to current user
         for (final item in rawList) {
           if (item is Map) {
             final ownerId = item['user_id'] ?? item['owner_id'];
+            debugPrint('[getOrCreateOrganizerId] organizer id=${item['id']} user_id=$ownerId vs userId=$userId');
             if (ownerId != null && ownerId.toString() == userId.toString()) {
               final id = item['id'];
-              if (id != null) return int.tryParse(id.toString());
+              if (id != null) {
+                debugPrint('[getOrCreateOrganizerId] FOUND matching organizer id=$id');
+                return int.tryParse(id.toString());
+              }
             }
           }
         }
         // No existing organizer → auto-create one
+        debugPrint('[getOrCreateOrganizerId] No matching organizer found. Creating...');
         final createRes = await http.post(
           Uri.parse('$baseUrl/organizers'),
           headers: headers,
           body: jsonEncode({
-            'nama_organizer': userName,
+            'organizer_name': userName,
             'deskripsi': '',
           }),
         );
+        debugPrint('[getOrCreateOrganizerId] POST /organizers statusCode=${createRes.statusCode}');
+        debugPrint('[getOrCreateOrganizerId] POST /organizers body=${createRes.body}');
         if (createRes.statusCode == 200 || createRes.statusCode == 201) {
           final created = jsonDecode(createRes.body);
           final createdData = created['data'] ?? created;
@@ -289,8 +300,10 @@ class EventService {
           if (newId != null) return int.tryParse(newId.toString());
         }
       }
+      debugPrint('[getOrCreateOrganizerId] returning null');
       return null;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[getOrCreateOrganizerId] ERROR: $e');
       return null;
     }
   }

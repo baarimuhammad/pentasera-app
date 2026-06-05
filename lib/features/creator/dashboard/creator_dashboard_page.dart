@@ -1,9 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/auth_service.dart';
-import 'package:pentasera_app/services/order_service.dart';
 import 'package:pentasera_app/services/event_service.dart';
 
 class CreatorDashboardPage extends StatefulWidget {
@@ -64,64 +65,57 @@ class _CreatorDashboardPageState extends State<CreatorDashboardPage> {
 
     _userName = await AuthService.getUserNama() ?? 'Creator';
 
-    // Load stats
+    // Load stats from the dedicated dashboard endpoint
+    // This endpoint correctly filters by the logged-in creator's organizer_id
     try {
-      // 1. Count creator's own published events
-      final eventsResult = await EventService.getMyEvents();
-      debugPrint('[Dashboard] getMyEvents success=${eventsResult['success']}');
-      if (eventsResult['success'] == true) {
-        final events = (eventsResult['data'] as List?)
-                ?.whereType<Map>()
-                .map((item) => Map<String, dynamic>.from(item))
-                .toList() ??
-            [];
-        _totalEvents = events.where((e) {
-          final status = (e['event_status'] ?? e['status'] ?? '').toString().toLowerCase();
-          return status == 'published';
-        }).length;
-        debugPrint('[Dashboard] totalEvents (published): $_totalEvents');
-      }
+      final headers = await AuthService.authHeaders();
 
-      // 2. Count orders and revenue
-      final ordersResult = await OrderService.getOrders();
-      debugPrint('[Dashboard] getOrders success=${ordersResult['success']}');
-      if (ordersResult['success'] == true) {
-        final orders = (ordersResult['data'] as List?)
-                ?.whereType<Map>()
-                .map((item) => Map<String, dynamic>.from(item))
-                .toList() ??
-            [];
-        _totalTransaksi = orders.length;
-        debugPrint('[Dashboard] totalTransaksi: $_totalTransaksi');
+      // 1. Fetch dashboard stats (filtered by organizer)
+      final statsResponse = await http.get(
+        Uri.parse('${AuthService.baseUrl}/dashboard/stats'),
+        headers: headers,
+      );
+      debugPrint('[Dashboard] GET /dashboard/stats statusCode=${statsResponse.statusCode}');
 
-        // Sum revenue from all orders (handle string/int/double)
-        for (var order in orders) {
-          final total = _parseNum(order['total_harga']);
-          _totalPenjualan += total;
-          debugPrint('[Dashboard] order id=${order['id']} total_harga=${order['total_harga']} parsed=$total');
+      if (statsResponse.statusCode == 200) {
+        final statsBody = jsonDecode(statsResponse.body);
+        final statsData = statsBody['data'] ?? statsBody;
+        debugPrint('[Dashboard] statsData: $statsData');
+
+        _totalEvents = _parseNum(statsData['total_events_active'] ?? statsData['total_events']);
+        _totalTiketTerjual = _parseNum(statsData['total_tickets_sold']);
+        _totalPenjualan = _parseNum(statsData['total_revenue']);
+        _totalTransaksi = _parseNum(statsData['total_transactions']);
+        _totalPengunjung = _totalTiketTerjual;
+
+        debugPrint('[Dashboard] totalEvents (from stats): $_totalEvents');
+        debugPrint('[Dashboard] totalTiketTerjual (from stats): $_totalTiketTerjual');
+        debugPrint('[Dashboard] totalPenjualan (from stats): $_totalPenjualan');
+      } else {
+        debugPrint('[Dashboard] /dashboard/stats failed, falling back to /my-events');
+        // Fallback: count from my-events if /dashboard/stats fails
+        final eventsResult = await EventService.getMyEvents();
+        if (eventsResult['success'] == true) {
+          final events = (eventsResult['data'] as List?)
+                  ?.whereType<Map>()
+                  .map((item) => Map<String, dynamic>.from(item))
+                  .toList() ??
+              [];
+          _totalEvents = events.where((e) {
+            final status = (e['event_status'] ?? e['status'] ?? '').toString().toLowerCase();
+            return status == 'published';
+          }).length;
+
+          // Sum up tiket_terjual and total_pendapatan from my-events response
+          for (var event in events) {
+            _totalTiketTerjual += _parseNum(event['tiket_terjual']);
+            _totalPenjualan += _parseNum(event['total_pendapatan']);
+          }
+          _totalPengunjung = _totalTiketTerjual;
         }
-        debugPrint('[Dashboard] totalPenjualan: $_totalPenjualan');
       }
 
-      // 3. Count tickets sold from detail orders
-      final detailResult = await OrderService.getDetailOrders();
-      debugPrint('[Dashboard] getDetailOrders success=${detailResult['success']}');
-      if (detailResult['success'] == true) {
-        final details = (detailResult['data'] as List?)
-                ?.whereType<Map>()
-                .map((item) => Map<String, dynamic>.from(item))
-                .toList() ??
-            [];
-        for (var detail in details) {
-          final jumlah = _parseNum(detail['jumlah']);
-          _totalTiketTerjual += jumlah;
-          debugPrint('[Dashboard] detail_order id=${detail['id']} jumlah=${detail['jumlah']} parsed=$jumlah');
-        }
-        debugPrint('[Dashboard] totalTiketTerjual: $_totalTiketTerjual');
-      }
-
-      // 4. Pengunjung = tiket terjual
-      _totalPengunjung = _totalTiketTerjual;
+      debugPrint('[Dashboard] Final stats - events: $_totalEvents, transaksi: $_totalTransaksi, tiket: $_totalTiketTerjual, penjualan: $_totalPenjualan');
     } catch (e) {
       debugPrint('[Dashboard] ERROR: $e');
     }
