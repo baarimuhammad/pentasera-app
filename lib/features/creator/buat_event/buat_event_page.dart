@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/event_service.dart';
 import 'package:pentasera_app/core/app_router.dart';
@@ -15,6 +17,10 @@ class BuatEventPage extends StatefulWidget {
 class _BuatEventPageState extends State<BuatEventPage> {
   int _currentStep = 0;
   bool _isLoading = false;
+
+  // Image picker
+  File? _selectedImage;
+  final ImagePicker _imagePicker = ImagePicker();
 
   // Step 1: Info Event
   TextEditingController? _namaControllerValue;
@@ -277,33 +283,67 @@ class _BuatEventPageState extends State<BuatEventPage> {
                       type: TextInputType.number),
                   const SizedBox(height: 16),
 
-                  // Photo placeholder
+                  // Photo Upload
                   Text('Foto Event',
                       style: TextStyle(
                           color: textColor,
                           fontSize: 13,
                           fontWeight: FontWeight.w500)),
                   const SizedBox(height: 8),
-                  Container(
-                    height: 120,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: AppColors.primary.withOpacity(0.2),
-                          style: BorderStyle.solid),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.cloud_upload_outlined,
-                            color: AppColors.primary.withOpacity(0.5),
-                            size: 32),
-                        const SizedBox(height: 8),
-                        Text('Tap untuk upload foto',
-                            style: TextStyle(color: mutedColor, fontSize: 12)),
-                      ],
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      height: 160,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: AppColors.primary.withOpacity(0.2),
+                            style: BorderStyle.solid),
+                      ),
+                      child: _selectedImage == null
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.cloud_upload_outlined,
+                                    color: AppColors.primary.withOpacity(0.5),
+                                    size: 32),
+                                const SizedBox(height: 8),
+                                Text('Tap untuk upload foto',
+                                    style: TextStyle(
+                                        color: mutedColor, fontSize: 12)),
+                              ],
+                            )
+                          : Stack(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    image: DecorationImage(
+                                      image: FileImage(_selectedImage!),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: _clearImage,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: const Icon(Icons.close,
+                                          color: Colors.white, size: 16),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ],
@@ -553,6 +593,35 @@ class _BuatEventPageState extends State<BuatEventPage> {
     );
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() => _selectedImage = File(pickedFile.path));
+      }
+    } catch (e) {
+      debugPrint('[_pickImage] Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal memilih gambar'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _clearImage() {
+    setState(() => _selectedImage = null);
+  }
+
   Future<void> _handleSubmit(String status) async {
     if (_namaController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -571,7 +640,8 @@ class _BuatEventPageState extends State<BuatEventPage> {
         ? DateFormat('yyyy-MM-dd HH:mm:ss').format(_tanggalMulai!)
         : '';
 
-    debugPrint('[BuatEvent] Creating event: nama=${_namaController.text} status=$status');
+    debugPrint(
+        '[BuatEvent] Creating event: nama=${_namaController.text} status=$status');
     final eventResult = await EventService.createEvent(
       namaEvent: _namaController.text.trim(),
       lokasi: _lokasiController.text.trim(),
@@ -604,10 +674,12 @@ class _BuatEventPageState extends State<BuatEventPage> {
       debugPrint('[BuatEvent] eventId=$eventId from data=$eventData');
 
       if (eventId == null) {
-        debugPrint('[BuatEvent] WARNING: eventId is null, cannot create ticket');
+        debugPrint(
+            '[BuatEvent] WARNING: eventId is null, cannot create ticket');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Event berhasil dibuat tapi gagal membuat tiket (ID tidak ditemukan)'),
+            content: Text(
+                'Event berhasil dibuat tapi gagal membuat tiket (ID tidak ditemukan)'),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 3),
           ),
@@ -617,7 +689,8 @@ class _BuatEventPageState extends State<BuatEventPage> {
         final harga = int.tryParse(_hargaController.text) ?? 0;
         final kuota = int.tryParse(_stokController.text) ?? 0;
 
-        debugPrint('[BuatEvent] Creating ticket: eventId=$parsedEventId kategori=${_namaTicketController.text} harga=$harga kuota=$kuota');
+        debugPrint(
+            '[BuatEvent] Creating ticket: eventId=$parsedEventId kategori=${_namaTicketController.text} harga=$harga kuota=$kuota');
         final ticketResult = await EventService.createTicket(
           eventId: parsedEventId,
           kategori: _namaTicketController.text.trim(),
@@ -641,7 +714,32 @@ class _BuatEventPageState extends State<BuatEventPage> {
         }
       }
     } else {
-      debugPrint('[BuatEvent] Skipping ticket creation - no ticket name provided');
+      debugPrint(
+          '[BuatEvent] Skipping ticket creation - no ticket name provided');
+    }
+
+    // Upload image if selected
+    if (_selectedImage != null) {
+      final eventData = eventResult['data'];
+      final eventId = eventData is Map ? eventData['id'] : null;
+
+      if (eventId != null) {
+        final parsedEventId = int.tryParse(eventId.toString()) ?? 0;
+        debugPrint('[BuatEvent] Uploading image for event $parsedEventId');
+
+        final imageResult = await EventService.uploadEventImage(
+          eventId: parsedEventId,
+          imagePath: _selectedImage!.path,
+        );
+
+        debugPrint('[BuatEvent] uploadEventImage result: $imageResult');
+
+        if (!imageResult['success']) {
+          debugPrint(
+              '[BuatEvent] WARNING: Image upload failed - ${imageResult['message']}');
+          // Don't stop the flow, image upload failure is non-critical
+        }
+      }
     }
 
     if (mounted) {

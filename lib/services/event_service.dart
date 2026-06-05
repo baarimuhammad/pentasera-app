@@ -44,7 +44,9 @@ class EventService {
       }
       return {
         'success': false,
-        'message': data is Map ? (data['message'] ?? 'Gagal memuat event') : 'Gagal memuat event'
+        'message': data is Map
+            ? (data['message'] ?? 'Gagal memuat event')
+            : 'Gagal memuat event'
       };
     } catch (e) {
       debugPrint('[getEvents] ERROR: $e');
@@ -99,7 +101,8 @@ class EventService {
         // Log ticket data specifically
         if (eventData is Map) {
           final tickets = eventData['tickets'];
-          debugPrint('[getEventById] has tickets? ${tickets != null} | tickets type: ${tickets.runtimeType}');
+          debugPrint(
+              '[getEventById] has tickets? ${tickets != null} | tickets type: ${tickets.runtimeType}');
           if (tickets is List) {
             for (var t in tickets) {
               debugPrint('[getEventById] ticket: ${t}');
@@ -148,7 +151,8 @@ class EventService {
         }
         debugPrint('[getTicketsByEvent] parsed tickets: ${tickets.length}');
         for (var t in tickets) {
-          debugPrint('[getTicketsByEvent] ticket: id=${t['id']} harga=${t['harga']} kategori=${t['kategori']}');
+          debugPrint(
+              '[getTicketsByEvent] ticket: id=${t['id']} harga=${t['harga']} kategori=${t['kategori']}');
         }
         if (tickets.isNotEmpty) {
           return {'success': true, 'data': tickets};
@@ -156,12 +160,14 @@ class EventService {
       }
 
       // Fallback: nested route approach
-      debugPrint('[getTicketsByEvent] Trying fallback: $baseUrl/events/$eventId/tickets');
+      debugPrint(
+          '[getTicketsByEvent] Trying fallback: $baseUrl/events/$eventId/tickets');
       final fallbackResponse = await http.get(
         Uri.parse('$baseUrl/events/$eventId/tickets'),
         headers: {'Accept': 'application/json'},
       );
-      debugPrint('[getTicketsByEvent] fallback statusCode: ${fallbackResponse.statusCode}');
+      debugPrint(
+          '[getTicketsByEvent] fallback statusCode: ${fallbackResponse.statusCode}');
       if (fallbackResponse.statusCode == 200) {
         final fallbackData = jsonDecode(fallbackResponse.body);
         List<dynamic> tickets = [];
@@ -227,7 +233,9 @@ class EventService {
       }
       return {
         'success': false,
-        'message': data is Map ? (data['message'] ?? 'Gagal memuat event saya') : 'Gagal memuat event saya'
+        'message': data is Map
+            ? (data['message'] ?? 'Gagal memuat event saya')
+            : 'Gagal memuat event saya'
       };
     } catch (e) {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
@@ -426,6 +434,51 @@ class EventService {
         'message': data['message'] ?? 'Gagal hapus event'
       };
     } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // UPLOAD EVENT IMAGE (protected — creator only)
+  static Future<Map<String, dynamic>> uploadEventImage({
+    required int eventId,
+    required String imagePath,
+  }) async {
+    try {
+      final headers = await AuthService.authHeaders();
+      // Remove 'Content-Type' from headers to let http.MultipartRequest set it
+      final requestHeaders = Map<String, String>.from(headers);
+      requestHeaders.remove('Content-Type');
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/events/$eventId/image'),
+      );
+
+      // Add headers
+      request.headers.addAll(requestHeaders);
+
+      // Add image file
+      request.files.add(
+        await http.MultipartFile.fromPath('image', imagePath),
+      );
+
+      debugPrint('[uploadEventImage] Uploading image for event $eventId');
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      final data = jsonDecode(responseBody);
+
+      debugPrint('[uploadEventImage] statusCode: ${response.statusCode}');
+      debugPrint('[uploadEventImage] body: $responseBody');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': data['data'] ?? data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal upload gambar'
+      };
+    } catch (e) {
+      debugPrint('[uploadEventImage] ERROR: $e');
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
   }
