@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:pentasera_app/main.dart';
 import 'package:pentasera_app/services/event_service.dart';
+import 'package:pentasera_app/features/creator/kelola_event/kelola_event_page.dart';
+import 'package:pentasera_app/features/creator/laporan_event/laporan_event_page.dart';
 
 class EventSayaPage extends StatefulWidget {
   const EventSayaPage({super.key});
@@ -286,16 +288,45 @@ class _EventSayaPageState extends State<EventSayaPage>
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Fitur edit event masih dikembangkan')),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LaporanEventPage(eventId: int.parse(event['id'].toString())),
+                            ),
                           );
                         },
-                        icon: const Icon(Icons.edit, size: 16),
+                        icon: const Icon(Icons.analytics_outlined, size: 14),
+                        label: const Text('Laporan', style: TextStyle(fontSize: 11)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.blue,
+                          side: const BorderSide(color: Colors.blue),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final eventId = event['id'];
+                          if (eventId == null) return;
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => KelolaEventPage(
+                                eventId: int.parse(eventId.toString()),
+                              ),
+                            ),
+                          );
+                          // Refresh list setelah kembali dari halaman kelola event
+                          if (mounted) _loadEvents();
+                        },
+                        icon: const Icon(Icons.edit, size: 14),
                         label:
-                            const Text('Edit', style: TextStyle(fontSize: 12)),
+                            const Text('Edit', style: TextStyle(fontSize: 11)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.primary),
@@ -305,13 +336,13 @@ class _EventSayaPageState extends State<EventSayaPage>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _confirmDelete(event),
-                        icon: const Icon(Icons.delete_outline, size: 16),
+                        icon: const Icon(Icons.delete_outline, size: 14),
                         label:
-                            const Text('Hapus', style: TextStyle(fontSize: 12)),
+                            const Text('Hapus', style: TextStyle(fontSize: 11)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red,
                           side: const BorderSide(color: Colors.red),

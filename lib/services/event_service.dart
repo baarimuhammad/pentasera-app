@@ -314,6 +314,7 @@ class EventService {
     required String lokasi,
     required String eventDatetime,
     String? deskripsi,
+    String? kategoriEvent,
     String status = 'draft',
     int? organizerId,
   }) async {
@@ -329,19 +330,25 @@ class EventService {
       }
 
       final headers = await AuthService.authHeaders();
+      final body = <String, dynamic>{
+        'nama_event': namaEvent,
+        'lokasi': lokasi,
+        'event_datetime': eventDatetime,
+        'event_status': status,
+        'organizer_id': resolvedOrganizerId,
+      };
+      if (deskripsi != null && deskripsi.isNotEmpty) body['deskripsi'] = deskripsi;
+      if (kategoriEvent != null && kategoriEvent.isNotEmpty) body['kategori_event'] = kategoriEvent;
+
+      debugPrint('[createEvent] body: $body');
       final response = await http.post(
         Uri.parse('$baseUrl/events'),
         headers: headers,
-        body: jsonEncode({
-          'nama_event': namaEvent,
-          'lokasi': lokasi,
-          'event_datetime': eventDatetime,
-          'event_status': status,
-          'organizer_id': resolvedOrganizerId,
-          if (deskripsi != null && deskripsi.isNotEmpty) 'deskripsi': deskripsi,
-        }),
+        body: jsonEncode(body),
       );
       final data = jsonDecode(response.body);
+      debugPrint('[createEvent] statusCode: ${response.statusCode}');
+      debugPrint('[createEvent] response: ${response.body}');
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {'success': true, 'data': data['data'] ?? data};
       } else if (response.statusCode == 422) {
@@ -360,6 +367,7 @@ class EventService {
         'message': data['message'] ?? 'Gagal membuat event'
       };
     } catch (e) {
+      debugPrint('[createEvent] ERROR: $e');
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
   }
@@ -370,21 +378,28 @@ class EventService {
     required String kategori,
     required int harga,
     required int kuota,
+    String? saleStart,
+    String? saleEnd,
   }) async {
     try {
       final headers = await AuthService.authHeaders();
+      final body = <String, dynamic>{
+        'event_id': eventId,
+        'kategori': kategori,
+        'harga': harga,
+        'kuota': kuota,
+        'sisa_kuota': kuota,
+      };
+      if (saleStart != null && saleStart.isNotEmpty) body['sale_start'] = saleStart;
+      if (saleEnd != null && saleEnd.isNotEmpty) body['sale_end'] = saleEnd;
+      debugPrint('[createTicket] body: $body');
       final response = await http.post(
         Uri.parse('$baseUrl/tickets'),
         headers: headers,
-        body: jsonEncode({
-          'event_id': eventId,
-          'kategori': kategori,
-          'harga': harga,
-          'kuota': kuota,
-          'sisa_kuota': kuota,
-        }),
+        body: jsonEncode(body),
       );
       final data = jsonDecode(response.body);
+      debugPrint('[createTicket] statusCode: ${response.statusCode}');
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {'success': true, 'data': data['data'] ?? data};
       }
@@ -393,6 +408,7 @@ class EventService {
         'message': data['message'] ?? 'Gagal membuat tiket'
       };
     } catch (e) {
+      debugPrint('[createTicket] ERROR: $e');
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
   }
@@ -492,6 +508,163 @@ class EventService {
       };
     } catch (e) {
       debugPrint('[uploadEventImage] ERROR: $e');
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // GET EVENT STATS (protected — creator only)
+  static Future<Map<String, dynamic>> getEventStats(int eventId) async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/$eventId/stats'),
+        headers: headers,
+      );
+      debugPrint('[getEventStats] statusCode: ${response.statusCode}');
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal memuat statistik event'
+      };
+    } catch (e) {
+      debugPrint('[getEventStats] ERROR: $e');
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // GET EVENT REPORT (protected — creator only)
+  static Future<Map<String, dynamic>> getEventReport(int eventId) async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/$eventId/report'),
+        headers: headers,
+      );
+      debugPrint('[getEventReport] statusCode: ${response.statusCode}');
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal memuat laporan event'
+      };
+    } catch (e) {
+      debugPrint('[getEventReport] ERROR: $e');
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // UPDATE TICKET (protected — creator only)
+  static Future<Map<String, dynamic>> updateTicket({
+    required int ticketId,
+    required String kategori,
+    required int harga,
+    required int kuota,
+    String? saleStart,
+    String? saleEnd,
+  }) async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final body = <String, dynamic>{
+        'kategori': kategori,
+        'harga': harga,
+        'kuota': kuota,
+      };
+      if (saleStart != null && saleStart.isNotEmpty) body['sale_start'] = saleStart;
+      if (saleEnd != null && saleEnd.isNotEmpty) body['sale_end'] = saleEnd;
+      final response = await http.patch(
+        Uri.parse('$baseUrl/tickets/$ticketId'),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal memperbarui tiket'
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // DELETE TICKET (protected — creator only)
+  static Future<Map<String, dynamic>> deleteTicket(int ticketId) async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/tickets/$ticketId'),
+        headers: headers,
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal menghapus tiket'
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+    }
+  }
+
+  // UPDATE EVENT WITH IMAGE (protected — creator only, multipart)
+  static Future<Map<String, dynamic>> updateEventWithImage({
+    required int eventId,
+    required String namaEvent,
+    required String lokasi,
+    required String eventDatetime,
+    String? deskripsi,
+    String? kategoriEvent,
+    String? imagePath,
+  }) async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final requestHeaders = Map<String, String>.from(headers);
+      requestHeaders.remove('Content-Type');
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/events/$eventId/update'),
+      );
+      request.headers.addAll(requestHeaders);
+
+      request.fields['nama_event'] = namaEvent;
+      request.fields['lokasi'] = lokasi;
+      request.fields['event_datetime'] = eventDatetime;
+      if (deskripsi != null) request.fields['deskripsi'] = deskripsi;
+      if (kategoriEvent != null) {
+        request.fields['kategori_event'] = kategoriEvent;
+      }
+
+      if (imagePath != null && imagePath.isNotEmpty) {
+        request.files.add(
+          await http.MultipartFile.fromPath('image', imagePath),
+        );
+      }
+
+      debugPrint('[updateEventWithImage] Updating event $eventId');
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      final data = jsonDecode(responseBody);
+
+      debugPrint('[updateEventWithImage] statusCode: ${response.statusCode}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': data['data'] ?? data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal memperbarui event'
+      };
+    } catch (e) {
+      debugPrint('[updateEventWithImage] ERROR: $e');
       return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
     }
   }
