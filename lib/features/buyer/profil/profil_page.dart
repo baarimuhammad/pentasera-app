@@ -33,7 +33,8 @@ class _ProfilPageState extends State<ProfilPage>
 
   Future<void> _loadProfile() async {
     setState(() => _isLoading = true);
-    final result = await AuthService.getMe();
+
+    // Tahap 1: Tampilkan data cache dulu agar foto profil langsung muncul
     final savedNama = await AuthService.getUserNama() ?? '';
     final savedEmail = await AuthService.getUserEmail() ?? '';
     final savedRole = await AuthService.getUserRole() ?? '';
@@ -42,19 +43,38 @@ class _ProfilPageState extends State<ProfilPage>
     final savedNoHp = await AuthService.getUserNoHp() ?? '';
     final savedAvatarFullUrl = await AuthService.getUserAvatarFullUrl() ?? '';
 
+    // Isi data dari cache dulu sebelum API selesai
+    if (mounted) {
+      setState(() {
+        _userData = {
+          'id': savedUserId,
+          'nama': savedNama,
+          'email': savedEmail,
+          'role': savedRole,
+          'created_at': savedCreatedAt,
+          'no_hp': savedNoHp,
+          'avatar_full_url': savedAvatarFullUrl,
+        };
+        _isLoading = false; // Tampilkan UI dengan data cache
+      });
+    }
+
+    // Tahap 2: Fetch data terbaru dari API di background
+    final result = await AuthService.getMe();
+
     if (result['success'] == true && result['data'] is Map) {
-      _userData = Map<String, dynamic>.from(result['data'] as Map);
-      _userData!['id'] =
-          _resolveProfileId(_userData, ['id', 'user_id']) ?? savedUserId;
-      _userData!['nama'] = _resolveProfileField(
-              _userData, ['nama', 'name', 'full_name', 'username']) ??
+      final freshData = Map<String, dynamic>.from(result['data'] as Map);
+      freshData['id'] =
+          _resolveProfileId(freshData, ['id', 'user_id']) ?? savedUserId;
+      freshData['nama'] = _resolveProfileField(
+              freshData, ['nama', 'name', 'full_name', 'username']) ??
           savedNama;
-      _userData!['email'] =
-          _resolveProfileField(_userData, ['email', 'user_email']) ??
+      freshData['email'] =
+          _resolveProfileField(freshData, ['email', 'user_email']) ??
               savedEmail;
-      _userData!['role'] =
-          _resolveProfileField(_userData, ['role']) ?? savedRole;
-      _userData!['created_at'] = _resolveProfileField(_userData, [
+      freshData['role'] =
+          _resolveProfileField(freshData, ['role']) ?? savedRole;
+      freshData['created_at'] = _resolveProfileField(freshData, [
             'created_at',
             'createdAt',
             'joined_at',
@@ -62,29 +82,31 @@ class _ProfilPageState extends State<ProfilPage>
             'tanggal_daftar'
           ]) ??
           savedCreatedAt;
-      // Ensure no_hp and avatar_full_url are set (server data takes priority)
-      _userData!['no_hp'] = _userData!['no_hp'] ?? savedNoHp;
-      _userData!['avatar_full_url'] = _userData!['avatar_full_url'] ?? savedAvatarFullUrl;
+      freshData['no_hp'] = freshData['no_hp'] ?? savedNoHp;
+      // Gunakan avatar dari API jika ada, jika tidak gunakan cache
+      freshData['avatar_full_url'] =
+          (freshData['avatar_full_url']?.toString().isNotEmpty == true
+              ? freshData['avatar_full_url']
+              : null) ??
+          savedAvatarFullUrl;
+
+      // Override role dengan preferensi lokal
+      final prefs = await SharedPreferences.getInstance();
+      final localRole = prefs.getString('user_role');
+      if (localRole != null && localRole.isNotEmpty) {
+        freshData['role'] = localRole;
+      }
+
+      if (mounted) setState(() => _userData = freshData);
     } else {
-      _userData = {
-        'id': savedUserId,
-        'nama': savedNama,
-        'email': savedEmail,
-        'role': savedRole,
-        'created_at': savedCreatedAt,
-        'no_hp': savedNoHp,
-        'avatar_full_url': savedAvatarFullUrl,
-      };
+      // API gagal, tetap override role dengan preferensi lokal
+      final prefs = await SharedPreferences.getInstance();
+      final localRole = prefs.getString('user_role');
+      if (localRole != null && localRole.isNotEmpty) {
+        _userData?['role'] = localRole;
+      }
+      if (mounted) setState(() {});
     }
-
-    // Override role with local preference for role switching
-    final prefs = await SharedPreferences.getInstance();
-    final localRole = prefs.getString('user_role');
-    if (localRole != null && localRole.isNotEmpty) {
-      _userData?['role'] = localRole;
-    }
-
-    if (mounted) setState(() => _isLoading = false);
   }
 
   String? _resolveProfileField(Map<String, dynamic>? data, List<String> keys) {
