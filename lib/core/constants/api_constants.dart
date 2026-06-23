@@ -5,19 +5,14 @@ class ApiConstants {
   ApiConstants._();
 
   // ─────────────────────────────────────────
-  // Base URL — auto-detect platform
-  //
-  // ⚠️  Untuk HP fisik: ganti IP di bawah dengan IP WiFi laptop Anda.
-  //    Cek dengan: ipconfig (Windows) → cari IPv4 di adapter WiFi.
-  //    Contoh: 192.168.213.26
-  //
-  // Untuk emulator Android: gunakan 10.0.2.2
+  // Base URL — Railway Production
+  // https://pentasera.up.railway.app
   // ─────────────────────────────────────────
 
-  static const String _ngrokUrl = 'https://bounding-shrine-exemption.ngrok-free.dev';
+  static const String _railwayUrl = 'https://pentasera.up.railway.app';
 
   static String get baseUrl {
-    return '$_ngrokUrl/api';
+    return '$_railwayUrl/api';
   }
 
   // ─────────────────────────────────────────

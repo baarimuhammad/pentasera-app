@@ -6,12 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // ─────────────────────────────────────────
-  // BASE URL — auto-detect platform
+  // BASE URL — Railway Production
   // ─────────────────────────────────────────
-  static const String _ngrokUrl = 'https://bounding-shrine-exemption.ngrok-free.dev';
+  static const String _railwayUrl = 'https://pentasera.up.railway.app';
 
   static String get baseUrl {
-    return '$_ngrokUrl/api';
+    return '$_railwayUrl/api';
   }
 
   // ─────────────────────────────────────────
@@ -22,7 +22,6 @@ class AuthService {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'ngrok-skip-browser-warning': 'true',
       'Authorization': 'Bearer $token',
     };
   }
@@ -38,7 +37,6 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
         },
         body: jsonEncode({'email': email, 'password': password}),
       );
@@ -103,7 +101,6 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
         },
         body: jsonEncode({
           'nama': nama,
