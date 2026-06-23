@@ -8,19 +8,10 @@ class AuthService {
   // ─────────────────────────────────────────
   // BASE URL — auto-detect platform
   // ─────────────────────────────────────────
+  static const String _ngrokUrl = 'https://bounding-shrine-exemption.ngrok-free.dev';
+
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:8000/api';
-    }
-    // Android emulator → 10.0.2.2, iOS simulator → localhost
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8000/api';
-      case TargetPlatform.iOS:
-        return 'http://localhost:8000/api';
-      default:
-        return 'http://localhost:8000/api';
-    }
+    return '$_ngrokUrl/api';
   }
 
   // ─────────────────────────────────────────
@@ -31,6 +22,7 @@ class AuthService {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
       'Authorization': 'Bearer $token',
     };
   }
@@ -46,6 +38,7 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
         body: jsonEncode({'email': email, 'password': password}),
       );
@@ -110,6 +103,7 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
         body: jsonEncode({
           'nama': nama,
@@ -231,6 +225,8 @@ class AuthService {
             user['joinedAt'] ??
             user['tanggal_daftar'])
         ?.toString();
+    final noHp = (user['no_hp'])?.toString();
+    final avatarFullUrl = (user['avatar_full_url'])?.toString();
 
     if (userId > 0) await prefs.setInt('user_id', userId);
     if (nama != null && nama.trim().isNotEmpty) {
@@ -244,6 +240,14 @@ class AuthService {
     }
     if (createdAt != null && createdAt.trim().isNotEmpty) {
       await prefs.setString('user_created_at', createdAt);
+    }
+    // Persist no_hp (allow clearing by saving empty string)
+    if (noHp != null) {
+      await prefs.setString('user_no_hp', noHp);
+    }
+    // Persist avatar_full_url
+    if (avatarFullUrl != null && avatarFullUrl.trim().isNotEmpty) {
+      await prefs.setString('user_avatar_full_url', avatarFullUrl);
     }
   }
 
@@ -262,6 +266,8 @@ class AuthService {
     await prefs.remove('user_role');
     await prefs.remove('user_email');
     await prefs.remove('user_created_at');
+    await prefs.remove('user_no_hp');
+    await prefs.remove('user_avatar_full_url');
   }
 
   // ─────────────────────────────────────────
@@ -342,5 +348,15 @@ class AuthService {
   static Future<String?> getUserCreatedAt() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('user_created_at');
+  }
+
+  static Future<String?> getUserNoHp() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_no_hp');
+  }
+
+  static Future<String?> getUserAvatarFullUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_avatar_full_url');
   }
 }

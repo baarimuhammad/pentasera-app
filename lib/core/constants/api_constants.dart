@@ -6,17 +6,18 @@ class ApiConstants {
 
   // ─────────────────────────────────────────
   // Base URL — auto-detect platform
+  //
+  // ⚠️  Untuk HP fisik: ganti IP di bawah dengan IP WiFi laptop Anda.
+  //    Cek dengan: ipconfig (Windows) → cari IPv4 di adapter WiFi.
+  //    Contoh: 192.168.213.26
+  //
+  // Untuk emulator Android: gunakan 10.0.2.2
   // ─────────────────────────────────────────
+
+  static const String _ngrokUrl = 'https://bounding-shrine-exemption.ngrok-free.dev';
+
   static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:8000/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8000/api';
-      case TargetPlatform.iOS:
-        return 'http://localhost:8000/api';
-      default:
-        return 'http://localhost:8000/api';
-    }
+    return '$_ngrokUrl/api';
   }
 
   // ─────────────────────────────────────────

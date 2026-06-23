@@ -4,15 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:pentasera_app/services/auth_service.dart';
 
 class EventService {
-  static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:8000/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8000/api';
-      default:
-        return 'http://localhost:8000/api';
-    }
-  }
+  // Menggunakan baseUrl yang sama dengan AuthService agar konfigurasi IP terpusat.
+  // Untuk ganti IP, cukup ubah AuthService._wifiHostIp saja.
+  static String get baseUrl => AuthService.baseUrl;
 
   // GET ALL EVENTS (public)
   static Future<Map<String, dynamic>> getEvents() async {

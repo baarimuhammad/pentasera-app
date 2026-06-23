@@ -156,6 +156,7 @@ class _KelolAksesPageState extends State<KelolAksesPage>
     final email = user['email'] ?? '';
     final role = user['role'] ?? 'buyer';
     final isActive = user['is_active'] ?? user['status'] ?? true;
+    final avatarFullUrl = (user['avatar_full_url'] ?? '').toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -174,17 +175,25 @@ class _KelolAksesPageState extends State<KelolAksesPage>
             decoration: BoxDecoration(
               color: _roleColor(role).withOpacity(0.1),
               shape: BoxShape.circle,
+              image: avatarFullUrl.isNotEmpty
+                  ? DecorationImage(
+                      image: NetworkImage(avatarFullUrl),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
-            child: Center(
-              child: Text(
-                nama.toString().substring(0, 1).toUpperCase(),
-                style: TextStyle(
-                  color: _roleColor(role),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            child: avatarFullUrl.isEmpty
+                ? Center(
+                    child: Text(
+                      nama.toString().substring(0, 1).toUpperCase(),
+                      style: TextStyle(
+                        color: _roleColor(role),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(width: 12),
           Expanded(

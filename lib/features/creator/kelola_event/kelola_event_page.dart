@@ -224,6 +224,8 @@ class _KelolaEventPageState extends State<KelolaEventPage>
     switch (status?.toLowerCase()) {
       case 'published':
         return 'AKTIF';
+      case 'pending_approval':
+        return 'MENUNGGU PERSETUJUAN';
       case 'draft':
         return 'DRAF';
       case 'cancelled':
@@ -237,6 +239,8 @@ class _KelolaEventPageState extends State<KelolaEventPage>
     switch (status?.toLowerCase()) {
       case 'published':
         return Colors.green;
+      case 'pending_approval':
+        return Colors.amber; // menunggu persetujuan admin
       case 'draft':
         return Colors.orange;
       case 'cancelled':

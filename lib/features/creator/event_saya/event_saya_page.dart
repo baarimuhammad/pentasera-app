@@ -48,16 +48,25 @@ class _EventSayaPageState extends State<EventSayaPage>
   }
 
   List<Map<String, dynamic>> _filterEvents(String tab) {
+    final now = DateTime.now();
     return _events.where((e) {
       final s =
           (e['event_status'] ?? e['status'] ?? '').toString().toLowerCase();
+      final dateStr =
+          (e['event_datetime'] ?? e['tanggal_mulai'] ?? '').toString();
+      final eventDate = DateTime.tryParse(dateStr);
+      final isPast = eventDate != null && eventDate.isBefore(now);
+
       switch (tab) {
         case 'draft':
           return s == 'draft';
         case 'aktif':
-          return s == 'published';
+          // Published/pending events that have NOT yet passed
+          return (s == 'published' || s == 'pending_approval') && !isPast;
         case 'lalu':
-          return s == 'ended' || s == 'cancelled';
+          // Events that ended, were cancelled, OR published events whose date has passed
+          return s == 'ended' || s == 'cancelled' ||
+              ((s == 'published' || s == 'pending_approval') && isPast);
         default:
           return true;
       }
@@ -202,7 +211,7 @@ class _EventSayaPageState extends State<EventSayaPage>
     final tanggal =
         (event['event_datetime'] ?? event['tanggal_mulai'] ?? '').toString();
     final status = (event['event_status'] ?? 'draft').toString();
-    final imageUrl = (event['foto'] ?? event['image'] ?? '').toString();
+    final imageUrl = (event['image_src'] ?? '').toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -263,7 +272,7 @@ class _EventSayaPageState extends State<EventSayaPage>
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        status.toString().toUpperCase(),
+                        status == 'pending_approval' ? 'MENUNGGU' : status.toString().toUpperCase(),
                         style: TextStyle(
                           color: _statusColor(status),
                           fontSize: 10,
@@ -368,6 +377,8 @@ class _EventSayaPageState extends State<EventSayaPage>
         return Colors.orange;
       case 'published':
         return Colors.green;
+      case 'pending_approval':
+        return Colors.amber; // menunggu persetujuan admin
       case 'ended':
         return Colors.grey;
       case 'cancelled':

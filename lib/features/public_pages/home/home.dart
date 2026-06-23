@@ -19,6 +19,28 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> _events = [];
   bool _isLoading = true;
+  String? _selectedCategory;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  List<Map<String, dynamic>>
+   _getFilteredEvents() {
+    return _events.where((event) {
+      // 1. Filter berdasarkan Kategori Budaya (jika terpilih)
+      final matchesCategory = _selectedCategory == null || 
+          event['kategori_event'] == _selectedCategory;
+      // 2. Filter berdasarkan Search Bar query
+      final name = (event['nama_event'] ?? '').toString().toLowerCase();
+      final location = (event['lokasi'] ?? '').toString().toLowerCase();
+      final desc = (event['deskripsi'] ?? '').toString().toLowerCase();
+      final matchesSearch = _searchQuery.isEmpty || 
+          name.contains(_searchQuery) || 
+          location.contains(_searchQuery) ||
+          desc.contains(_searchQuery);
+      return matchesCategory && matchesSearch;
+    }).toList();
+  }
+
 
   @override
   void initState() {
@@ -134,16 +156,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      leading: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.menu, color: AppColors.primary),
-        ),
-      ),
+
       title: RichText(
         text: const TextSpan(
           style: TextStyle(color: AppColors.primary, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5),
@@ -159,28 +172,37 @@ class _HomePageState extends State<HomePage> {
           icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: AppColors.primary),
           onPressed: () => themeNotifier.value = isDark ? ThemeMode.light : ThemeMode.dark,
         ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Container(
-            width: 40,
-            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
-            child: const Icon(Icons.account_circle, color: AppColors.primary),
-          ),
-        ),
       ],
     );
   }
 
-  Widget _buildSearchBar(bool isDark) {
+   Widget _buildSearchBar(bool isDark) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: TextField(
+        controller: _searchController, // Hubungkan controller
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value.toLowerCase(); // Simpan input query pencarian
+          });
+        },
         style: TextStyle(color: isDark ? AppColors.slate100 : AppColors.slate900),
         decoration: InputDecoration(
-          hintText: 'Cari tari, wayang, atau teater...',
+          hintText: 'Cari event...',
           hintStyle: TextStyle(color: AppColors.primary.withOpacity(0.5), fontSize: 14),
           prefixIcon: const Icon(Icons.search, color: AppColors.primary),
-          suffixIcon: Icon(Icons.tune, color: AppColors.primary.withOpacity(0.6)),
+          // Tambahkan tombol silang (clear) jika sedang mengetik sesuatu
+          suffixIcon: _searchQuery.isNotEmpty 
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: AppColors.primary),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
           filled: true,
           fillColor: AppColors.primary.withOpacity(0.05),
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
@@ -191,6 +213,7 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
 
   Widget _buildHeroBanner(bool isDark) {
     if (_isLoading) {
@@ -208,10 +231,14 @@ class _HomePageState extends State<HomePage> {
     }
 
     final featured = _events.isNotEmpty ? _events.first : null;
-    final imageUrl = (featured?['image_url'] ?? '').toString();
+    final imageUrl = (featured?['image_src'] ?? '').toString();
     final title = (featured?['nama_event'] ?? 'Jelajahi Event Budaya').toString();
     final desc = (featured?['deskripsi'] ?? 'Saksikan keindahan seni budaya nusantara').toString();
     final eventId = featured?['id'];
+
+    final featuredImageUrl = imageUrl.isNotEmpty
+        ? imageUrl
+        : 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1000&auto=format&fit=crop';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -221,9 +248,10 @@ class _HomePageState extends State<HomePage> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
           color: AppColors.primary.withOpacity(0.1),
-          image: imageUrl.isNotEmpty
-              ? DecorationImage(image: CachedNetworkImageProvider(imageUrl), fit: BoxFit.cover)
-              : null,
+          image: DecorationImage(
+            image: CachedNetworkImageProvider(featuredImageUrl),
+            fit: BoxFit.cover,
+          ),
         ),
         child: Container(
           decoration: BoxDecoration(
@@ -268,14 +296,14 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCategories(Color textColor, bool isDark) {
+    Widget _buildCategories(Color textColor, bool isDark) {
     final categories = [
-      {'icon': Icons.festival, 'name': 'Tari'},
-      {'icon': Icons.theater_comedy, 'name': 'Wayang'},
-      {'icon': Icons.masks, 'name': 'Teater'},
-      {'icon': Icons.music_note, 'name': 'Musik'},
-      {'icon': Icons.palette, 'name': 'Pameran'},
+      {'icon': Icons.theater_comedy, 'name': 'Seni Pertunjukan'},
+      {'icon': Icons.festival, 'name': 'Festival Budaya'},
+      {'icon': Icons.palette, 'name': 'Pameran Seni'},
+      {'icon': Icons.school, 'name': 'Workshop'},
     ];
+    
     return Padding(
       padding: const EdgeInsets.only(top: 32.0, left: 16.0),
       child: Column(
@@ -287,17 +315,43 @@ class _HomePageState extends State<HomePage> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: categories.map((cat) {
+                final isSelected = _selectedCategory == cat['name'];
                 return Padding(
                   padding: const EdgeInsets.only(right: 16.0),
-                  child: Column(children: [
-                    Container(
-                      width: 64, height: 64,
-                      decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
-                      child: Icon(cat['icon'] as IconData, color: AppColors.primary, size: 32),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(cat['name'] as String, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.slate400 : AppColors.slate600)),
-                  ]),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        // Toggle: jika kategori yang sama diklik lagi, batalkan filter
+                        _selectedCategory = isSelected ? null : cat['name'] as String;
+                      });
+                    },
+                    child: Column(children: [
+                      Container(
+                        width: 64, height: 64,
+                        decoration: BoxDecoration(
+                          // Highlight warna jika kategori sedang terpilih
+                          color: isSelected 
+                              ? AppColors.primary 
+                              : AppColors.primary.withOpacity(0.1), 
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          cat['icon'] as IconData, 
+                          color: isSelected ? Colors.white : AppColors.primary, 
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        cat['name'] as String, 
+                        style: TextStyle(
+                          fontSize: 12, 
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, 
+                          color: isSelected ? AppColors.primary : (isDark ? AppColors.slate400 : AppColors.slate600),
+                        ),
+                      ),
+                    ]),
+                  ),
                 );
               }).toList(),
             ),
@@ -307,9 +361,10 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+
   Widget _buildEventTerdekat(Color textColor, bool isDark) {
     // Sort by event_datetime ascending (upcoming first)
-    final upcoming = List<Map<String, dynamic>>.from(_events);
+    final upcoming = _getFilteredEvents();
     upcoming.sort((a, b) {
       final da = DateTime.tryParse((a['event_datetime'] ?? '').toString()) ?? DateTime(2099);
       final db = DateTime.tryParse((b['event_datetime'] ?? '').toString()) ?? DateTime(2099);
@@ -351,7 +406,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildEventCard(Map<String, dynamic> event, bool isDark, Color textColor) {
-    final imageUrl = (event['image_url'] ?? '').toString();
+    final imageUrl = (event['image_src'] ?? '').toString();
     final title = (event['nama_event'] ?? 'Event').toString();
     final lokasi = (event['lokasi'] ?? '').toString();
     final kategori = (event['kategori_event'] ?? '').toString().toUpperCase();
@@ -422,7 +477,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildTopEvent(Color textColor, bool isDark) {
-    final topEvents = _events.take(3).toList();
+    final topEvents = _getFilteredEvents().take(3).toList();
     if (topEvents.isEmpty) return const SizedBox.shrink();
 
     return Padding(
@@ -436,7 +491,7 @@ class _HomePageState extends State<HomePage> {
             final idx = entry.key;
             final event = entry.value;
             final rank = '0${idx + 1}';
-            final imageUrl = (event['image_url'] ?? '').toString();
+            final imageUrl = (event['image_src'] ?? '').toString();
             final title = (event['nama_event'] ?? 'Event').toString();
             final lokasi = (event['lokasi'] ?? '').toString();
             final eventId = event['id'];

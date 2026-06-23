@@ -8,6 +8,7 @@ import 'package:pentasera_app/services/user_service.dart';
 import 'package:pentasera_app/features/authentication/login/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pentasera_app/core/app_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfilPage extends StatefulWidget {
   const ProfilPage({super.key});
@@ -38,6 +39,8 @@ class _ProfilPageState extends State<ProfilPage>
     final savedRole = await AuthService.getUserRole() ?? '';
     final savedCreatedAt = await AuthService.getUserCreatedAt() ?? '';
     final savedUserId = await AuthService.getUserId();
+    final savedNoHp = await AuthService.getUserNoHp() ?? '';
+    final savedAvatarFullUrl = await AuthService.getUserAvatarFullUrl() ?? '';
 
     if (result['success'] == true && result['data'] is Map) {
       _userData = Map<String, dynamic>.from(result['data'] as Map);
@@ -59,6 +62,9 @@ class _ProfilPageState extends State<ProfilPage>
             'tanggal_daftar'
           ]) ??
           savedCreatedAt;
+      // Ensure no_hp and avatar_full_url are set (server data takes priority)
+      _userData!['no_hp'] = _userData!['no_hp'] ?? savedNoHp;
+      _userData!['avatar_full_url'] = _userData!['avatar_full_url'] ?? savedAvatarFullUrl;
     } else {
       _userData = {
         'id': savedUserId,
@@ -66,6 +72,8 @@ class _ProfilPageState extends State<ProfilPage>
         'email': savedEmail,
         'role': savedRole,
         'created_at': savedCreatedAt,
+        'no_hp': savedNoHp,
+        'avatar_full_url': savedAvatarFullUrl,
       };
     }
 
@@ -113,6 +121,7 @@ class _ProfilPageState extends State<ProfilPage>
     final userName = (_userData?['nama'] ?? '').toString();
     final userEmail = (_userData?['email'] ?? '').toString();
     final userRole = (_userData?['role'] ?? 'buyer').toString();
+    final avatarFullUrl = (_userData?['avatar_full_url'] ?? '').toString();
     final initial = userName.trim().isNotEmpty
         ? userName.trim().substring(0, 1).toUpperCase()
         : 'U';
@@ -139,22 +148,53 @@ class _ProfilPageState extends State<ProfilPage>
                   child: Column(
                     children: [
                       // Avatar
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            initial,
-                            style: GoogleFonts.playfairDisplay(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                      GestureDetector(
+                        onTap: _changeAvatar,
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                                image: avatarFullUrl.isNotEmpty
+                                    ? DecorationImage(
+                                        image: NetworkImage(avatarFullUrl),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              child: avatarFullUrl.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        initial,
+                                        style: GoogleFonts.playfairDisplay(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
                             ),
-                          ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -246,6 +286,15 @@ class _ProfilPageState extends State<ProfilPage>
                                 mutedColor),
                             const SizedBox(height: 12),
                             _infoCard(
+                                Icons.phone_outlined,
+                                'Nomor Telepon',
+                                _userData?['no_hp'] ?? '-',
+                                surfaceColor,
+                                borderColor,
+                                textColor,
+                                mutedColor),
+                            const SizedBox(height: 12),
+                            _infoCard(
                                 Icons.badge_outlined,
                                 'Role',
                                 userRole.toUpperCase(),
@@ -291,178 +340,180 @@ class _ProfilPageState extends State<ProfilPage>
                         padding: const EdgeInsets.all(24),
                         child: Column(
                           children: [
-                            // Role switch (Buyer/Organizer)
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: surfaceColor,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: borderColor),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(10),
+                            if (userRole != 'admin') ...[
+                              // Role switch (Buyer/Organizer)
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: surfaceColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: borderColor),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        _userData?['role'] == 'creator'
+                                            ? Icons.business_center
+                                            : Icons.person,
+                                        color: AppColors.primary,
+                                        size: 20,
+                                      ),
                                     ),
-                                    child: Icon(
-                                      _userData?['role'] == 'creator'
-                                          ? Icons.business_center
-                                          : Icons.person,
-                                      color: AppColors.primary,
-                                      size: 20,
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Mode Organizer',
+                                              style: TextStyle(
+                                                  color: textColor,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14)),
+                                          Text(
+                                              _userData?['role'] == 'creator'
+                                                  ? 'Aktif - Dapat membuat event'
+                                                  : 'Nonaktif - Mode pembeli',
+                                              style: TextStyle(
+                                                  color: mutedColor,
+                                                  fontSize: 12)),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Mode Organizer',
-                                            style: TextStyle(
-                                                color: textColor,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 14)),
-                                        Text(
-                                            _userData?['role'] == 'creator'
-                                                ? 'Aktif - Dapat membuat event'
-                                                : 'Nonaktif - Mode pembeli',
-                                            style: TextStyle(
-                                                color: mutedColor,
-                                                fontSize: 12)),
-                                      ],
-                                    ),
-                                  ),
-                                  Switch(
-                                    value: _userData?['role'] == 'creator',
-                                    onChanged: (val) async {
-                                      final newRole = val ? 'creator' : 'buyer';
+                                    Switch(
+                                      value: _userData?['role'] == 'creator',
+                                      onChanged: (val) async {
+                                        final newRole = val ? 'creator' : 'buyer';
 
-                                      // Step 1: Ambil user id dari cache lokal
-                                      // (tidak perlu hit /api/me — sudah di-cache saat login)
-                                      final cachedId = _userData?['id'];
-                                      final userId = (cachedId is int
-                                              ? cachedId
-                                              : int.tryParse(
-                                                  cachedId?.toString() ?? '')) ??
-                                          await AuthService.getUserId();
+                                        // Step 1: Ambil user id dari cache lokal
+                                        // (tidak perlu hit /api/me — sudah di-cache saat login)
+                                        final cachedId = _userData?['id'];
+                                        final userId = (cachedId is int
+                                                ? cachedId
+                                                : int.tryParse(
+                                                    cachedId?.toString() ?? '')) ??
+                                            await AuthService.getUserId();
 
-                                      // Jika userId null → kemungkinan guest / belum login
-                                      if (userId == null || userId <= 0) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                  'Silakan login terlebih dahulu untuk mengganti mode'),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                        return;
-                                      }
-
-                                      setState(() => _isLoading = true);
-                                      try {
-                                        // Step 2: Hit PATCH /api/users/{id} untuk update role di database
-                                        final headers =
-                                            await AuthService.authHeaders();
-                                        final response = await http.patch(
-                                          Uri.parse(
-                                              '${AuthService.baseUrl}/users/$userId'),
-                                          headers: headers,
-                                          body: jsonEncode({'role': newRole}),
-                                        );
-
-                                        debugPrint(
-                                            '[RoleUpdate] statusCode: ${response.statusCode}');
-                                        debugPrint(
-                                            '[RoleUpdate] body: ${response.body}');
-
-                                        if (response.statusCode != 200) {
-                                          // Tampilkan pesan error asli dari backend
-                                          String errMsg =
-                                              'Gagal update role, coba lagi';
-                                          try {
-                                            final errBody = jsonDecode(
-                                                response.body) as Map;
-                                            errMsg = errBody['message']
-                                                    ?.toString() ??
-                                                errMsg;
-                                          } catch (_) {}
+                                        // Jika userId null → kemungkinan guest / belum login
+                                        if (userId == null || userId <= 0) {
                                           if (mounted) {
                                             ScaffoldMessenger.of(context)
                                                 .showSnackBar(
-                                              SnackBar(
-                                                content: Text(errMsg),
+                                              const SnackBar(
+                                                content: Text(
+                                                    'Silakan login terlebih dahulu untuk mengganti mode'),
                                                 backgroundColor: Colors.red,
                                               ),
                                             );
                                           }
-                                          setState(() => _isLoading = false);
                                           return;
                                         }
 
-                                        // Step 3: Update SharedPreferences
-                                        final prefs = await SharedPreferences
-                                            .getInstance();
-                                        await prefs.setString(
-                                            'user_role', newRole);
-
-                                        // Step 4: Update local state
-                                        setState(() {
-                                          _userData?['role'] = newRole;
-                                          _isLoading = false;
-                                        });
-
-                                        // Step 5: Navigate ke RoleBasedShell yang sesuai
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                val
-                                                    ? 'Mode Organizer aktif!'
-                                                    : 'Kembali ke mode Pembeli',
-                                              ),
-                                              backgroundColor: Colors.green,
-                                            ),
+                                        setState(() => _isLoading = true);
+                                        try {
+                                          // Step 2: Hit PATCH /api/users/{id} untuk update role di database
+                                          final headers =
+                                              await AuthService.authHeaders();
+                                          final response = await http.patch(
+                                            Uri.parse(
+                                                '${AuthService.baseUrl}/users/$userId'),
+                                            headers: headers,
+                                            body: jsonEncode({'role': newRole}),
                                           );
-                                          await Future.delayed(const Duration(
-                                              milliseconds: 800));
+
+                                          debugPrint(
+                                              '[RoleUpdate] statusCode: ${response.statusCode}');
+                                          debugPrint(
+                                              '[RoleUpdate] body: ${response.body}');
+
+                                          if (response.statusCode != 200) {
+                                            // Tampilkan pesan error asli dari backend
+                                            String errMsg =
+                                                'Gagal update role, coba lagi';
+                                            try {
+                                              final errBody = jsonDecode(
+                                                  response.body) as Map;
+                                              errMsg = errBody['message']
+                                                      ?.toString() ??
+                                                  errMsg;
+                                            } catch (_) {}
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(errMsg),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
+                                            setState(() => _isLoading = false);
+                                            return;
+                                          }
+
+                                          // Step 3: Update SharedPreferences
+                                          final prefs = await SharedPreferences
+                                              .getInstance();
+                                          await prefs.setString(
+                                              'user_role', newRole);
+
+                                          // Step 4: Update local state
+                                          setState(() {
+                                            _userData?['role'] = newRole;
+                                            _isLoading = false;
+                                          });
+
+                                          // Step 5: Navigate ke RoleBasedShell yang sesuai
                                           if (mounted) {
-                                            Navigator.pushAndRemoveUntil(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => RoleBasedShell(
-                                                    role: newRole),
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  val
+                                                      ? 'Mode Organizer aktif!'
+                                                      : 'Kembali ke mode Pembeli',
+                                                ),
+                                                backgroundColor: Colors.green,
                                               ),
-                                              (_) => false,
+                                            );
+                                            await Future.delayed(const Duration(
+                                                milliseconds: 800));
+                                            if (mounted) {
+                                              Navigator.pushAndRemoveUntil(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => RoleBasedShell(
+                                                      role: newRole),
+                                                ),
+                                                (_) => false,
+                                              );
+                                            }
+                                          }
+                                        } catch (e) {
+                                          setState(() => _isLoading = false);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text('Error: $e'),
+                                                backgroundColor: Colors.red,
+                                              ),
                                             );
                                           }
                                         }
-                                      } catch (e) {
-                                        setState(() => _isLoading = false);
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text('Error: $e'),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    },
-                                    activeColor: AppColors.primary,
-                                  ),
-                                ],
+                                      },
+                                      activeColor: AppColors.primary,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
+                              const SizedBox(height: 16),
+                            ],
 
                             // Dark mode toggle
                             Container(
@@ -576,6 +627,50 @@ class _ProfilPageState extends State<ProfilPage>
     return '${localDate.day} ${monthNames[localDate.month - 1]} ${localDate.year}';
   }
 
+  Future<void> _changeAvatar() async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (image == null) return;
+
+    setState(() => _isLoading = true);
+    final result = await UserService.uploadAvatar(image.path);
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      final data = result['data'];
+      final newAvatarUrl = (data is Map ? data['avatar_full_url'] : null)?.toString();
+
+      if (newAvatarUrl != null && newAvatarUrl.isNotEmpty) {
+        setState(() {
+          _userData?['avatar_full_url'] = newAvatarUrl;
+        });
+
+        // Properly refresh and cache all user data from server
+        await AuthService.getMe();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto profil berhasil diperbarui'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+      setState(() => _isLoading = false);
+    } else {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Gagal mengupload foto profil'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _infoCard(
       IconData icon,
       String label,
@@ -681,6 +776,7 @@ class _EditProfileSheet extends StatefulWidget {
 class _EditProfileSheetState extends State<_EditProfileSheet> {
   late final TextEditingController _namaController;
   late final TextEditingController _emailController;
+  late final TextEditingController _noHpController;
   bool _isSaving = false;
 
   @override
@@ -690,12 +786,15 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         text: (widget.userData?['nama'] ?? '').toString());
     _emailController = TextEditingController(
         text: (widget.userData?['email'] ?? '').toString());
+    _noHpController = TextEditingController(
+        text: (widget.userData?['no_hp'] ?? '').toString());
   }
 
   @override
   void dispose() {
     _namaController.dispose();
     _emailController.dispose();
+    _noHpController.dispose();
     super.dispose();
   }
 
@@ -754,6 +853,19 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                     ? AppColors.backgroundDark
                     : AppColors.backgroundLight,
                 keyboardType: TextInputType.name,
+              ),
+              const SizedBox(height: 14),
+              _editProfileField(
+                label: 'Nomor Telepon',
+                controller: _noHpController,
+                icon: Icons.phone_outlined,
+                enabled: !_isSaving,
+                textColor: textColor,
+                borderColor: borderColor,
+                fillColor: isDark
+                    ? AppColors.backgroundDark
+                    : AppColors.backgroundLight,
+                keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 14),
               _editProfileField(
@@ -866,6 +978,8 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   Future<void> _saveProfile() async {
     final nama = _namaController.text.trim();
     final email = _emailController.text.trim();
+    final noHp = _noHpController.text.trim();
+
 
     if (nama.isEmpty) {
       _showMessage('Nama lengkap tidak boleh kosong');
@@ -888,6 +1002,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
       userId: userId,
       nama: nama,
       email: email,
+      noHp: noHp,
     );
 
     if (!mounted) return;
@@ -900,6 +1015,9 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         'id': userId,
         'nama': nama,
         'email': email,
+        'no_hp': noHp,
+        // Preserve avatar_full_url from existing userData
+        'avatar_full_url': widget.userData?['avatar_full_url'] ?? '',
       };
 
       // Cache the updated user data

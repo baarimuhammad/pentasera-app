@@ -63,6 +63,44 @@ class UserService {
   }
 
   // ─────────────────────────────────────────
+  // UPLOAD AVATAR
+  // ─────────────────────────────────────────
+  static Future<Map<String, dynamic>> uploadAvatar(String imagePath) async {
+    try {
+      final headers = await AuthService.authHeaders();
+      final requestHeaders = Map<String, String>.from(headers);
+      requestHeaders.remove('Content-Type');
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/profile/avatar'),
+      );
+      request.headers.addAll(requestHeaders);
+      request.files.add(
+        await http.MultipartFile.fromPath('avatar', imagePath),
+      );
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      final decoded = jsonDecode(responseBody);
+
+      if (response.statusCode == 200) {
+        // Extract data from ApiResponseTrait format: {status, message, data}
+        final data = decoded is Map<String, dynamic>
+            ? (decoded['data'] ?? decoded)
+            : decoded;
+        return {'success': true, 'data': data, 'message': decoded['message']};
+      }
+      return {
+        'success': false,
+        'message': decoded is Map ? (decoded['message'] ?? 'Gagal mengupload avatar') : 'Gagal mengupload avatar',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengupload avatar: $e'};
+    }
+  }
+
+  // ─────────────────────────────────────────
   // UPDATE USER ROLE (admin only)
   // Backend: PATCH /api/users/{id}
   // ─────────────────────────────────────────
@@ -90,12 +128,13 @@ class UserService {
 
   // ─────────────────────────────────────────
   // UPDATE PROFILE
-  // Backend: PATCH /api/users/{id}
+  // Backend: PATCH /api/profile
   // ─────────────────────────────────────────
   static Future<Map<String, dynamic>> updateProfile({
     required int userId,
     required String nama,
     required String email,
+    String? noHp,
   }) async {
     try {
       final headers = await AuthService.authHeaders();
@@ -104,13 +143,11 @@ class UserService {
           ? savedRole
           : 'buyer';
       final response = await http.patch(
-        Uri.parse('$baseUrl/users/$userId'),
+        Uri.parse('$baseUrl/profile'),
         headers: headers,
         body: jsonEncode({
           'nama': nama,
-          'name': nama,
-          'email': email,
-          'role': role,
+          'no_hp': noHp,
         }),
       );
       final data = _decodeJsonObject(response.body);
@@ -129,6 +166,7 @@ class UserService {
           'nama': userData['nama'] ?? nama,
           'email': userData['email'] ?? email,
           'role': userData['role'] ?? role,
+          'no_hp': userData['no_hp'] ?? noHp,
         });
         return {'success': true, 'data': userData};
       }
@@ -142,11 +180,10 @@ class UserService {
     }
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────
   // CREATE USER (admin only)
   // Backend: POST /api/users
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
+  // ─────────────────────────────────────────
   static Future<Map<String, dynamic>> createUser(
       Map<String, dynamic> userData) async {
     try {

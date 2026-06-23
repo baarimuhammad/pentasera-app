@@ -118,7 +118,7 @@ class _DetailEventPageState extends State<DetailEventPage>
 
     final event = _event ?? {};
     // Field names matched to backend per claude.md
-    final imageUrl = (event['image_url'] ?? '').toString();
+    final imageUrl = (event['image_src'] ?? '').toString();
     final eventName = (event['nama_event'] ?? 'Event').toString();
     final tanggal = (event['event_datetime'] ?? '').toString();
     final lokasi = (event['lokasi'] ?? '').toString();

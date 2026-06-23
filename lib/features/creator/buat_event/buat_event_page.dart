@@ -847,7 +847,7 @@ class _BuatEventPageState extends State<BuatEventPage>
       _showSnack(
         status == 'draft'
             ? 'Event tersimpan sebagai draft ✓'
-            : 'Event berhasil dipublikasikan!',
+            : 'Event berhasil diajukan dan menunggu persetujuan admin.',
         isError: false,
       );
       await Future.delayed(const Duration(seconds: 1));

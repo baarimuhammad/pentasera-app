@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:pentasera_app/features/authentication/login/login_page.dart';
 import 'package:pentasera_app/core/app_router.dart';
 import 'package:pentasera_app/services/auth_service.dart';
+import 'package:intl/date_symbol_data_local.dart'; 
+
+
 
 // ─────────────────────────────────────────
 // Global theme notifier (default: ikuti sistem)
@@ -42,7 +45,12 @@ class AppColors {
   static const Color slate600 = Color(0xFF475569);
 }
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inisialisasi locale bahasa Indonesia
+  await initializeDateFormatting('id_ID', null); 
+  
   runApp(const MyApp());
 }
 

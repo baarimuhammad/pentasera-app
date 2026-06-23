@@ -7,7 +7,8 @@ import 'package:pentasera_app/features/creator/dashboard/creator_dashboard_page.
 import 'package:pentasera_app/features/creator/event_saya/event_saya_page.dart';
 import 'package:pentasera_app/features/creator/buat_event/buat_event_page.dart';
 import 'package:pentasera_app/features/admin/kelola_akses/kelola_akses_page.dart';
-import 'package:pentasera_app/features/admin/informasi_dasar/informasi_dasar_admin_page.dart';
+import 'package:pentasera_app/features/admin/dashboard/admin_dashboard_page.dart';
+import 'package:pentasera_app/features/admin/analytics/admin_analytics_page.dart';
 import 'package:pentasera_app/features/authentication/login/login_page.dart';
 import 'package:pentasera_app/services/auth_service.dart';
 
@@ -54,14 +55,14 @@ class _RoleBasedShellState extends State<RoleBasedShell> {
         ];
       case 'admin':
         return [
+          const AdminDashboardPage(),
           const KelolAksesPage(),
-          const InformasiDasarAdminPage(),
+          const AdminAnalyticsPage(),
           const ProfilPage(),
         ];
       default: // buyer
         return [
           const HomePage(),
-          const HomePage(), // Eksplor — untuk sementara pakai HomePage
           const TiketSayaPage(),
           const ProfilPage(),
         ];
@@ -92,13 +93,17 @@ class _RoleBasedShellState extends State<RoleBasedShell> {
       case 'admin':
         return const [
           BottomNavigationBarItem(
-              icon: Icon(Icons.admin_panel_settings_outlined),
-              activeIcon: Icon(Icons.admin_panel_settings),
-              label: 'Kelola Akses'),
+              icon: Icon(Icons.dashboard_outlined),
+              activeIcon: Icon(Icons.dashboard),
+              label: 'Dashboard'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.info_outline),
-              activeIcon: Icon(Icons.info),
-              label: 'Info Dasar'),
+              icon: Icon(Icons.people_outline),
+              activeIcon: Icon(Icons.people),
+              label: 'Pengguna'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.analytics_outlined),
+              activeIcon: Icon(Icons.analytics),
+              label: 'Analitik'),
           BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
@@ -110,10 +115,6 @@ class _RoleBasedShellState extends State<RoleBasedShell> {
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home),
               label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.explore_outlined),
-              activeIcon: Icon(Icons.explore),
-              label: 'Eksplor'),
           BottomNavigationBarItem(
               icon: Icon(Icons.confirmation_number_outlined),
               activeIcon: Icon(Icons.confirmation_number),
